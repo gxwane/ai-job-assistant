@@ -184,32 +184,24 @@
                 <el-icon color="#67C23A"><CircleCheckFilled /></el-icon>
                 已匹配核心技能（{{ (result.result_json.matched_core_skills || []).length }}）
               </h4>
-              <div class="tag-list">
-                <el-tag
-                  v-for="(s, i) in result.result_json.matched_core_skills"
-                  :key="i"
-                  type="success"
-                  effect="plain"
-                  size="large"
-                >{{ s }}</el-tag>
-                <span v-if="!result.result_json.matched_core_skills?.length" class="empty-hint">无</span>
-              </div>
+              <SkillTagList
+                :items="result.result_json.matched_core_skills || []"
+                type="success"
+                effect="plain"
+                size="large"
+              />
             </div>
             <div class="skill-col">
               <h4>
                 <el-icon color="#F56C6C"><CircleCloseFilled /></el-icon>
                 缺失核心技能（{{ (result.result_json.missing_core_skills || []).length }}）
               </h4>
-              <div class="tag-list">
-                <el-tag
-                  v-for="(s, i) in result.result_json.missing_core_skills"
-                  :key="i"
-                  type="danger"
-                  effect="plain"
-                  size="large"
-                >{{ s }}</el-tag>
-                <span v-if="!result.result_json.missing_core_skills?.length" class="empty-hint">无</span>
-              </div>
+              <SkillTagList
+                :items="result.result_json.missing_core_skills || []"
+                type="danger"
+                effect="plain"
+                size="large"
+              />
             </div>
           </div>
         </div>
@@ -232,17 +224,12 @@
             <el-icon color="#67C23A"><CircleCheckFilled /></el-icon> 匹配优势
           </span>
         </template>
-        <div class="tag-list">
-          <el-tag
-            v-for="(item, index) in result.result_json.matched_points"
-            :key="index"
-            type="success"
-            effect="plain"
-            size="large"
-          >
-            {{ item }}
-          </el-tag>
-        </div>
+        <SkillTagList
+          :items="result.result_json.matched_points || []"
+          type="success"
+          effect="plain"
+          size="large"
+        />
       </el-card>
 
       <!-- ========== 8. 缺失技能 ========== -->
@@ -252,17 +239,12 @@
             <el-icon color="#E6A23C"><WarningFilled /></el-icon> 缺失技能
           </span>
         </template>
-        <div class="tag-list">
-          <el-tag
-            v-for="(item, index) in result.result_json.missing_skills"
-            :key="index"
-            type="warning"
-            effect="plain"
-            size="large"
-          >
-            {{ item }}
-          </el-tag>
-        </div>
+        <SkillTagList
+          :items="result.result_json.missing_skills || []"
+          type="warning"
+          effect="plain"
+          size="large"
+        />
       </el-card>
 
       <!-- ========== 9. 简历优化建议 ========== -->
@@ -340,6 +322,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAnalysisStore } from '../stores/analysis'
 import { getHistoryDetail } from '../api/request'
+import SkillTagList from '../components/SkillTagList.vue'
 
 const route = useRoute()
 const store = useAnalysisStore()

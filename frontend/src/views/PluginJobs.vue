@@ -114,23 +114,12 @@
           </el-table-column>
           <el-table-column label="HR状态" width="110" align="center">
             <template #default="{ row }">
-              <el-tag v-if="row.hr_status" :type="hrStatusType(row.hr_status)" size="small" effect="dark">
-                {{ row.hr_status }}
-              </el-tag>
-              <span v-else class="no-score">未知</span>
+              <HRStatusTag :status="row.hr_status" />
             </template>
           </el-table-column>
           <el-table-column label="匹配分数" width="100" align="center">
             <template #default="{ row }">
-              <el-tag
-                v-if="row.match_score != null"
-                :type="getScoreType(row.match_score)"
-                effect="dark"
-                size="large"
-              >
-                {{ row.match_score }} 分
-              </el-tag>
-              <span v-else class="no-score">未分析</span>
+              <ScoreBadge :score="row.match_score" size="large" />
             </template>
           </el-table-column>
           <el-table-column label="推荐结论" width="100" align="center">
@@ -247,7 +236,7 @@
               <el-descriptions-item label="来源">{{ detail.source }}</el-descriptions-item>
               <el-descriptions-item v-if="detail.hr_name" label="HR姓名">{{ detail.hr_name }}</el-descriptions-item>
               <el-descriptions-item v-if="detail.hr_status" label="HR状态">
-                <el-tag :type="hrStatusType(detail.hr_status)" size="small" effect="dark">{{ detail.hr_status }}</el-tag>
+                <HRStatusTag :status="detail.hr_status" />
               </el-descriptions-item>
               <el-descriptions-item v-if="detail.composite_score != null" label="综合推荐">{{ detail.composite_score }}分</el-descriptions-item>
               <el-descriptions-item label="岗位链接" :span="2">
@@ -277,7 +266,7 @@
             <!-- 岗位标签展示 -->
             <div v-if="parsedDetailTags.length" class="tag-section-row" style="margin-top:12px">
               <span class="tag-label">岗位标签：</span>
-              <el-tag v-for="t in parsedDetailTags" :key="t" size="small" type="success" effect="plain" class="inline-tag">{{ t }}</el-tag>
+              <SkillTagList :items="parsedDetailTags" type="success" size="small" />
             </div>
 
             <!-- 分项评分 -->
@@ -352,6 +341,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import ScoreBadge from '../components/ScoreBadge.vue'
+import HRStatusTag from '../components/HRStatusTag.vue'
+import SkillTagList from '../components/SkillTagList.vue'
 import {
   getJobRecords,
   getJobRecordDetail,

@@ -78,7 +78,7 @@
         <el-table-column label="公司" min-width="150" prop="company" />
         <el-table-column label="匹配度" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="scoreTag(row.match_score)" effect="dark" size="small">{{ row.match_score ?? '-' }}分</el-tag>
+            <ScoreBadge :score="row.match_score" size="small" />
           </template>
         </el-table-column>
         <el-table-column label="状态" width="100" align="center">
@@ -102,6 +102,15 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
+import ScoreBadge from '../components/ScoreBadge.vue'
+import { downloadBlob } from '../utils/file-download'
+import {
+  loadECharts,
+  setupResponsiveChart,
+  SCORE_PALETTE,
+  HR_STATUS_PALETTE,
+  FUNNEL_PALETTE,
+} from '../utils/echarts-helper'
 import {
   getStatisticsOverview, getScoreDistribution, getJobFunnel,
   getRecentRecommended, getHrStatusDistribution, exportPdfReport,
@@ -111,8 +120,8 @@ import {
 // module scope so onBeforeUnmount can reliably remove listeners and dispose.
 let scoreChart = null
 let hrChart = null
-let scoreResizeHandler = null
-let hrResizeHandler = null
+let scoreCleanup = null
+let hrCleanup = null
 
 const loading = ref(true)
 const overview = ref({})
@@ -140,7 +149,7 @@ const funnelItems = computed(() => [
   { label: 'Offer', value: funnel.value.offer_jobs ?? 0 },
 ])
 
-const funnelColors = ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#9B59B6']
+const funnelColors = FUNNEL_PALETTE
 const funnelMax = computed(() => Math.max(...funnelItems.value.map(f => f.value), 1))
 
 function funnelWidth(val) {
@@ -171,20 +180,17 @@ onMounted(async () => {
 // [TEST-ANCHOR: chart-lifecycle] Cleanup — prevents resize listener accumulation
 // and ECharts canvas/WebGL context leak on Vue Router navigation.
 onBeforeUnmount(() => {
-  if (scoreResizeHandler) window.removeEventListener('resize', scoreResizeHandler)
-  if (hrResizeHandler)    window.removeEventListener('resize', hrResizeHandler)
-  scoreChart?.dispose()
-  hrChart?.dispose()
+  scoreCleanup?.()
+  hrCleanup?.()
 })
 
 async function renderChart() {
   if (!scoreChartRef.value || distribution.value.length === 0) return
   try {
-    const echarts = (await import('echarts')).default || (await import('echarts'))
+    const echarts = await loadECharts()
     scoreChart = echarts.init(scoreChartRef.value)
     const labels = distribution.value.map(r => r.label)
     const data = distribution.value.map(r => r.count)
-    const colors = ['#67C23A', '#85CE61', '#E6A23C', '#F56C6C', '#909399']
     scoreChart.setOption({
       tooltip: { trigger: 'axis' },
       grid: { left: 40, right: 20, top: 20, bottom: 30 },
@@ -192,27 +198,15 @@ async function renderChart() {
       yAxis: { type: 'value', minInterval: 1 },
       series: [{
         type: 'bar',
-        data: data.map((v, i) => ({ value: v, itemStyle: { color: colors[i] } })),
+        data: data.map((v, i) => ({ value: v, itemStyle: { color: SCORE_PALETTE[i % SCORE_PALETTE.length] } })),
         barMaxWidth: 50,
       }],
     })
     // [TEST-ANCHOR: chart-lifecycle] Named handler — removable in onBeforeUnmount
-    scoreResizeHandler = () => scoreChart.resize()
-    window.addEventListener('resize', scoreResizeHandler)
+    scoreCleanup = setupResponsiveChart(scoreChart)
   } catch (e) {
     console.error('echarts render error:', e)
   }
-}
-
-function scoreTag(s) { if (s >= 80) return 'success'; if (s >= 60) return 'warning'; return 'danger' }
-
-// HR状态颜色配置
-const HR_COLORS = {
-  '在线': '#67C23A', '刚刚活跃': '#85CE61', '今日活跃': '#34a853',
-  '3日内活跃': '#fbbc04', '本周活跃': '#E6A23C',
-  '两周内活跃': '#F56C6C', '本月活跃': '#ea4335',
-  '两月内活跃': '#ea4335', '3月内活跃': '#F56C6C',
-  '半年前活跃': '#909399', '未知': '#c0c4cc',
 }
 
 const hrStatItems = computed(() => {
@@ -222,19 +216,19 @@ const hrStatItems = computed(() => {
   return statuses.map(s => ({
     status: s, count: dist[s] || 0,
     pct: Math.round(((dist[s] || 0) / max) * 100),
-    color: HR_COLORS[s] || '#909399',
+    color: HR_STATUS_PALETTE[s] || '#909399',
   }))
 })
 
 async function renderHrChart() {
   if (!hrChartRef.value) return
   try {
-    const echarts = (await import('echarts')).default || (await import('echarts'))
+    const echarts = await loadECharts()
     hrChart = echarts.init(hrChartRef.value)
     const dist = hrDistribution.value || {}
     const statuses = ['在线', '刚刚活跃', '今日活跃', '3日内活跃', '本周活跃', '两周内活跃', '本月活跃', '两月内活跃', '3月内活跃', '半年前活跃', '未知']
     const data = statuses.map(s => dist[s] || 0)
-    const colors = statuses.map(s => HR_COLORS[s] || '#909399')
+    const colors = statuses.map(s => HR_STATUS_PALETTE[s] || '#909399')
     hrChart.setOption({
       tooltip: { trigger: 'axis' },
       grid: { left: 40, right: 20, top: 20, bottom: 60 },
@@ -247,29 +241,28 @@ async function renderHrChart() {
       }],
     })
     // [TEST-ANCHOR: chart-lifecycle] Named handler — removable in onBeforeUnmount
-    hrResizeHandler = () => hrChart.resize()
-    window.addEventListener('resize', hrResizeHandler)
+    hrCleanup = setupResponsiveChart(hrChart)
   } catch (e) {
     console.error('HR chart render error:', e)
   }
 }
+
 function statusTag(s) {
   const m = { recommended: 'warning', communicated: 'success', interview: '', offer: 'success' }
   return m[s] || 'info'
 }
+
 function statusLabel(s) {
   const m = { captured: '已捕获', analyzed: '已分析', recommended: '推荐', communicated: '已沟通', interview: '面试', offer: 'Offer', ignored: '已忽略' }
   return m[s] || s
 }
+
 function fmt(d) { if (!d) return ''; const dt = new Date(d); return dt.toLocaleDateString('zh-CN') + ' ' + dt.toLocaleTimeString('zh-CN', { hour12: false }) }
 
 async function exportReport() {
   try {
     const blob = await exportPdfReport()
-    const url = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }))
-    const a = document.createElement('a')
-    a.href = url; a.download = 'job_search_report.pdf'; a.click()
-    window.URL.revokeObjectURL(url)
+    downloadBlob(blob, 'job_search_report.pdf', 'application/pdf')
     ElMessage.success('报告已导出')
   } catch { ElMessage.error('导出失败') }
 }

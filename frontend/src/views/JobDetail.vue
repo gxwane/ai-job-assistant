@@ -14,17 +14,13 @@
             <!-- 岗位标签 -->
             <div v-if="parsedTags.length" class="job-tags-row">
               <span class="tags-label">岗位标签：</span>
-              <el-tag v-for="tag in parsedTags" :key="tag" size="small" effect="plain" type="success" class="skill-tag">
-                {{ tag }}
-              </el-tag>
+              <SkillTagList :items="parsedTags" type="success" size="small" />
             </div>
             <!-- HR信息 -->
             <div v-if="job.hr_name || job.hr_status" class="hr-info-row">
               <span class="hr-label">HR：</span>
               <span v-if="job.hr_name" class="hr-name">{{ job.hr_name }}</span>
-              <el-tag v-if="job.hr_status" :type="hrStatusColor(job.hr_status)" size="small" effect="dark">
-                {{ job.hr_status }}
-              </el-tag>
+              <HRStatusTag v-if="job.hr_status" :status="job.hr_status" size="small" />
               <span v-if="job.hr_active_score != null" class="hr-score">活跃分 {{ job.hr_active_score }}</span>
             </div>
           </div>
@@ -76,11 +72,11 @@
                 <div class="tag-section">
                   <div v-if="analysis.matched_job_tags?.length">
                     <span class="tag-subtitle green">命中标签：</span>
-                    <el-tag v-for="t in analysis.matched_job_tags" :key="t" size="small" type="success" effect="plain" class="inline-tag">{{ t }}</el-tag>
+                    <SkillTagList :items="analysis.matched_job_tags" type="success" size="small" />
                   </div>
                   <div v-if="analysis.missing_job_tags?.length" style="margin-top:6px">
                     <span class="tag-subtitle red">缺失标签：</span>
-                    <el-tag v-for="t in analysis.missing_job_tags" :key="t" size="small" type="danger" effect="plain" class="inline-tag">{{ t }}</el-tag>
+                    <SkillTagList :items="analysis.missing_job_tags" type="danger" size="small" />
                   </div>
                 </div>
               </div>
@@ -129,6 +125,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { getJobRecordDetail } from '../api/request'
+import HRStatusTag from '../components/HRStatusTag.vue'
+import SkillTagList from '../components/SkillTagList.vue'
 
 const route = useRoute()
 const loading = ref(true)

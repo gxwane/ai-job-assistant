@@ -68,13 +68,7 @@
           </el-table-column>
           <el-table-column label="匹配分数" width="130" align="center">
             <template #default="{ row }">
-              <el-tag
-                :type="getScoreType(row.match_score)"
-                effect="dark"
-                size="large"
-              >
-                {{ row.match_score }} 分
-              </el-tag>
+              <ScoreBadge :score="row.match_score" size="large" />
             </template>
           </el-table-column>
           <el-table-column label="分析时间" width="170" align="center">
@@ -252,31 +246,13 @@
           <!-- 匹配优势 -->
           <div class="detail-section">
             <h4>匹配优势</h4>
-            <div class="tag-list">
-              <el-tag
-                v-for="(item, i) in detail.result_json.matched_points"
-                :key="i"
-                type="success"
-                effect="plain"
-              >
-                {{ item }}
-              </el-tag>
-            </div>
+            <SkillTagList :items="detail.result_json.matched_points || []" type="success" />
           </div>
 
           <!-- 缺失技能 -->
           <div class="detail-section">
             <h4>缺失技能</h4>
-            <div class="tag-list">
-              <el-tag
-                v-for="(item, i) in detail.result_json.missing_skills"
-                :key="i"
-                type="warning"
-                effect="plain"
-              >
-                {{ item }}
-              </el-tag>
-            </div>
+            <SkillTagList :items="detail.result_json.missing_skills || []" type="warning" />
           </div>
 
           <!-- 简历优化建议 -->
@@ -315,6 +291,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import ScoreBadge from '../components/ScoreBadge.vue'
+import SkillTagList from '../components/SkillTagList.vue'
 import { getHistoryList, getHistoryDetail, deleteHistory, batchDeleteHistory } from '../api/request'
 
 const records = ref([])
