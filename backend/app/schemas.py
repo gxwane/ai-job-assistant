@@ -1,0 +1,252 @@
+"""
+Pydantic 数据验证模型（请求/响应结构）
+"""
+from pydantic import BaseModel, Field
+from typing import List, Optional, Dict, Any, Generic, TypeVar
+from datetime import datetime
+
+T = TypeVar('T')
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    """通用分页响应"""
+    items: list[T] = Field(default_factory=list, description="当前页数据")
+    total: int = Field(0, description="总记录数")
+    page: int = Field(1, description="当前页码")
+    page_size: int = Field(10, description="每页条数")
+
+# ==================== 简历相关 ====================
+
+class ResumeResponse(BaseModel):
+    """简历上传后的返回数据"""
+    resume_id: int
+    filename: str
+    content: str
+
+    class Config:
+        from_attributes = True
+
+
+# ==================== 分析相关 ====================
+
+class AnalysisRequest(BaseModel):
+    """发起分析请求"""
+    resume_id: int = Field(..., description="简历ID")
+    job_title: str = Field(..., min_length=1, max_length=255, description="岗位名称")
+    job_description: str = Field(..., min_length=10, description="岗位JD文本")
+
+
+class InterviewQuestion(BaseModel):
+    """面试问题"""
+    question: str
+    answer: str
+
+
+class ScoreBreakdown(BaseModel):
+    """分项评分明细"""
+    skill_score: int = Field(..., ge=0, le=40, description="技能评分")
+    project_score: int = Field(..., ge=0, le=30, description="项目经验评分")
+    education_score: int = Field(..., ge=0, le=15, description="学历背景评分")
+    potential_score: int = Field(..., ge=0, le=15, description="发展潜力评分")
+    raw_total: int = Field(..., description="原始总分")
+    final_cap: Optional[int] = Field(None, description="触发的分数上限")
+    final_score: int = Field(..., ge=0, le=100, description="最终分数")
+
+
+class AnalysisResult(BaseModel):
+    """分析结果（含新增的结构化评分字段）"""
+    # 原有字段
+    match_score: int = Field(..., ge=0, le=100, description="最终匹配度评分（后端计算）")
+    summary: str = Field(..., description="总体评价")
+    matched_points: List[str] = Field(default_factory=list, description="匹配优势")
+    missing_skills: List[str] = Field(default_factory=list, description="缺失技能")
+    resume_suggestions: List[str] = Field(default_factory=list, description="简历优化建议")
+    interview_questions: List[InterviewQuestion] = Field(default_factory=list, description="面试高频问题")
+
+    # 新增：方向判断
+    resume_category: str = Field("", description="候选人职业方向")
+    job_category: str = Field("", description="岗位要求的职业方向")
+    category_match: bool = Field(True, description="方向是否匹配")
+    category_reason: str = Field("", description="方向判断理由")
+
+    # 新增：核心技能分析
+    core_job_skills: List[str] = Field(default_factory=list, description="JD要求的关键硬技能")
+    resume_skills: List[str] = Field(default_factory=list, description="候选人掌握的硬技能")
+    matched_core_skills: List[str] = Field(default_factory=list, description="匹配的核心技能")
+    missing_core_skills: List[str] = Field(default_factory=list, description="缺失的核心技能")
+    core_skill_hit_rate: float = Field(0.0, ge=0.0, le=1.0, description="核心技能命中率")
+
+    # 新增：后端计算的评分结果
+    score_breakdown: Optional[Dict[str, Any]] = Field(None, description="分项评分明细")
+    score_level: str = Field("", description="评分等级")
+    recommendation: str = Field("", description="投递建议")
+    score_cap_reason: Optional[str] = Field(None, description="分数封顶原因")
+    risk_warnings: List[str] = Field(default_factory=list, description="风险提示")
+
+
+class AnalysisResponse(BaseModel):
+    """分析接口的完整返回"""
+    id: int
+    resume_id: int
+    job_title: str
+    match_score: int
+    result_json: AnalysisResult
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# ==================== 历史记录相关 ====================
+
+class HistoryListItem(BaseModel):
+    """历史记录列表项"""
+    id: int
+    resume_id: int
+    job_title: str
+    match_score: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class BatchDeleteRequest(BaseModel):
+    """批量删除请求"""
+    ids: List[int] = Field(..., min_length=1, description="要删除的记录ID列表")
+
+
+class DeleteResponse(BaseModel):
+    """单条删除响应"""
+    message: str
+    deleted_id: int
+
+
+class BatchDeleteResponse(BaseModel):
+    """批量删除响应"""
+    message: str
+    deleted_count: int
+    deleted_ids: List[int]
+
+
+class HistoryDetailResponse(BaseModel):
+    """历史记录详情"""
+    id: int
+    resume_id: int
+    job_title: str
+    job_description: str
+    match_score: int
+    result_json: AnalysisResult
+    created_at: datetime
+    # 附带简历基本信息
+    resume_filename: Optional[str] = None
+    resume_content: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ==================== 插件相关 ====================
+
+class PluginJobCaptureRequest(BaseModel):
+    """插件发送岗位信息请求"""
+    resume_id: Optional[int] = Field(None, description="关联的简历ID，为空则只保存不分析")
+    job_title: str = Field(..., min_length=1, max_length=255, description="岗位名称")
+    company: Optional[str] = Field(None, max_length=255, description="公司名称")
+    salary: Optional[str] = Field(None, max_length=100, description="薪资范围")
+    location: Optional[str] = Field(None, max_length=100, description="工作地点")
+    job_url: str = Field(..., min_length=1, max_length=1000, description="岗位链接")
+    job_description: str = Field(..., min_length=10, description="岗位JD文本")
+    # 自动筛选新增字段
+    captured_page_url: Optional[str] = Field(None, max_length=1000, description="捕获时的列表页URL")
+    card_index: Optional[int] = Field(None, description="岗位在列表中序号")
+    job_unique_key: Optional[str] = Field(None, max_length=128, description="岗位唯一标识（去重用）")
+    scan_session_id: Optional[str] = Field(None, max_length=64, description="扫描批次ID")
+
+
+class PluginJobCaptureResponse(BaseModel):
+    """插件捕获岗位的返回"""
+    success: bool
+    job_record_id: int
+    match_score: Optional[int] = None
+    score_level: Optional[str] = None
+    recommendation: Optional[str] = None
+    should_recommend: bool = False
+    status: str
+    message: str
+    # 新增：结构化解析结果
+    job_tags: list = Field(default_factory=list, description="岗位标签/技能标签")
+    hr_name: Optional[str] = Field(None, description="HR姓名")
+    hr_status: Optional[str] = Field(None, description="HR活跃状态")
+    hr_active_score: Optional[int] = Field(None, description="HR活跃分值")
+    composite_score: Optional[int] = Field(None, description="综合推荐指数")
+
+
+class MarkCommunicatedRequest(BaseModel):
+    """标记已沟通请求"""
+    message: Optional[str] = Field(None, description="可选备注")
+
+
+# ==================== 岗位记录管理相关 ====================
+
+class JobRecordResponse(BaseModel):
+    """岗位记录响应"""
+    id: int
+    resume_id: Optional[int] = None
+    job_title: str
+    company: Optional[str] = None
+    salary: Optional[str] = None
+    location: Optional[str] = None
+    job_url: str
+    job_description: str
+    match_score: Optional[int] = None
+    score_level: Optional[str] = None
+    recommendation: Optional[str] = None
+    status: str
+    source: str
+    communicated_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    # 结构化解析字段
+    job_tags: Optional[str] = None
+    clean_job_description: Optional[str] = None
+    raw_job_text: Optional[str] = None
+    hr_name: Optional[str] = None
+    hr_status: Optional[str] = None
+    hr_active_score: Optional[int] = None
+    composite_score: Optional[int] = None
+
+    class Config:
+        from_attributes = True
+
+
+class JobRecordDetailResponse(JobRecordResponse):
+    """岗位记录详情（含完整分析JSON）"""
+    score_breakdown: Optional[Dict[str, Any]] = None
+    analysis_result_json: Optional[Dict[str, Any]] = None
+
+
+class BatchUpdateJobStatusRequest(BaseModel):
+    """批量更新岗位状态请求"""
+    ids: List[int] = Field(..., min_length=1, description="岗位记录ID列表")
+    status: str = Field(..., description="目标状态：captured/analyzed/recommended/communicated/ignored/interview")
+
+
+# ==================== OCR 相关 ====================
+
+class OCRExtractRequest(BaseModel):
+    """OCR字段提取请求"""
+    imageBase64: str = Field(..., description="Base64编码的裁剪图片")
+    fieldType: str = Field(..., description="字段类型：salary 或 company")
+
+
+class OCRExtractResponse(BaseModel):
+    """OCR字段提取响应（含详细调试信息）"""
+    text: str
+    fieldType: str
+    rawText: str = ""
+    cleanedText: str = ""
+    valid: bool = False
+    reason: str = ""
+    strategy: str = ""
+    detections: list = []
+    processedImageBase64: str = ""
