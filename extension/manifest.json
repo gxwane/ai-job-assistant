@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "AI求职助手 - Boss直聘插件 (Edge版)",
+  "version": "1.0.1",
+  "description": "将Boss直聘岗位信息发送到AI求职助手进行匹配分析，推荐是否值得沟通",
+  "minimum_edge_version": "88.0",
+  "action": {
+    "default_title": "AI求职助手设置",
+    "default_popup": "popup.html"
+  },
+  "permissions": [
+    "storage",
+    "activeTab",
+    "tabs",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://www.zhipin.com/*",
+    "http://127.0.0.1:*/*",
+    "http://localhost:*/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://www.zhipin.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {}
+}
