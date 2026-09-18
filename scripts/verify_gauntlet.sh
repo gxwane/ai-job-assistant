@@ -44,6 +44,9 @@ run_step "前端单元测试 (vitest 39 项用例)" bash -c "cd '$REPO_ROOT/fron
 # 5. 前端生产构建门禁 (Vite Build)
 run_step "前端生产打包构建 (Vite build)" bash -c "cd '$REPO_ROOT/frontend' && npm run build"
 
+# 6. 浏览器扩展模块化构建门禁 (Vite Extension Build)
+run_step "浏览器扩展模块化构建 (Vite extension build)" bash -c "cd '$REPO_ROOT/frontend' && npm run build:extension"
+
 echo -e "\033[1;32m========================================================\033[0m"
 echo -e "\033[1;32m [SUCCESS] 全栈门禁全部通过！项目达到最高开源交付标准！\033[0m"
 echo -e "\033[1;32m========================================================\033[0m"
