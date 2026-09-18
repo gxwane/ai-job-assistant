@@ -100,12 +100,19 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
   getStatisticsOverview, getScoreDistribution, getJobFunnel,
   getRecentRecommended, getHrStatusDistribution, exportPdfReport,
 } from '../api/request'
+
+// [TEST-ANCHOR: chart-lifecycle] ECharts instances and resize handlers kept at
+// module scope so onBeforeUnmount can reliably remove listeners and dispose.
+let scoreChart = null
+let hrChart = null
+let scoreResizeHandler = null
+let hrResizeHandler = null
 
 const loading = ref(true)
 const overview = ref({})
@@ -161,15 +168,24 @@ onMounted(async () => {
   } catch {} finally { loading.value = false }
 })
 
+// [TEST-ANCHOR: chart-lifecycle] Cleanup — prevents resize listener accumulation
+// and ECharts canvas/WebGL context leak on Vue Router navigation.
+onBeforeUnmount(() => {
+  if (scoreResizeHandler) window.removeEventListener('resize', scoreResizeHandler)
+  if (hrResizeHandler)    window.removeEventListener('resize', hrResizeHandler)
+  scoreChart?.dispose()
+  hrChart?.dispose()
+})
+
 async function renderChart() {
   if (!scoreChartRef.value || distribution.value.length === 0) return
   try {
     const echarts = (await import('echarts')).default || (await import('echarts'))
-    const chart = echarts.init(scoreChartRef.value)
+    scoreChart = echarts.init(scoreChartRef.value)
     const labels = distribution.value.map(r => r.label)
     const data = distribution.value.map(r => r.count)
     const colors = ['#67C23A', '#85CE61', '#E6A23C', '#F56C6C', '#909399']
-    chart.setOption({
+    scoreChart.setOption({
       tooltip: { trigger: 'axis' },
       grid: { left: 40, right: 20, top: 20, bottom: 30 },
       xAxis: { type: 'category', data: labels },
@@ -180,7 +196,9 @@ async function renderChart() {
         barMaxWidth: 50,
       }],
     })
-    window.addEventListener('resize', () => chart.resize())
+    // [TEST-ANCHOR: chart-lifecycle] Named handler — removable in onBeforeUnmount
+    scoreResizeHandler = () => scoreChart.resize()
+    window.addEventListener('resize', scoreResizeHandler)
   } catch (e) {
     console.error('echarts render error:', e)
   }
@@ -212,12 +230,12 @@ async function renderHrChart() {
   if (!hrChartRef.value) return
   try {
     const echarts = (await import('echarts')).default || (await import('echarts'))
-    const chart = echarts.init(hrChartRef.value)
+    hrChart = echarts.init(hrChartRef.value)
     const dist = hrDistribution.value || {}
     const statuses = ['在线', '刚刚活跃', '今日活跃', '3日内活跃', '本周活跃', '两周内活跃', '本月活跃', '两月内活跃', '3月内活跃', '半年前活跃', '未知']
     const data = statuses.map(s => dist[s] || 0)
     const colors = statuses.map(s => HR_COLORS[s] || '#909399')
-    chart.setOption({
+    hrChart.setOption({
       tooltip: { trigger: 'axis' },
       grid: { left: 40, right: 20, top: 20, bottom: 60 },
       xAxis: { type: 'category', data: statuses, axisLabel: { rotate: 30, fontSize: 10 } },
@@ -228,7 +246,9 @@ async function renderHrChart() {
         barMaxWidth: 36,
       }],
     })
-    window.addEventListener('resize', () => chart.resize())
+    // [TEST-ANCHOR: chart-lifecycle] Named handler — removable in onBeforeUnmount
+    hrResizeHandler = () => hrChart.resize()
+    window.addEventListener('resize', hrResizeHandler)
   } catch (e) {
     console.error('HR chart render error:', e)
   }
