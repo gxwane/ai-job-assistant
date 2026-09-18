@@ -45,16 +45,24 @@ def _parse_pdf(file_path: str) -> str:
 
 
 def _parse_docx(file_path: str) -> str:
-    """使用 python-docx 解析 Word 文件"""
+    """使用 python-docx 解析 Word 文件（段落 + 表格）"""
     text_parts = []
     try:
         doc = Document(file_path)
+        # 1. 普通段落
         for paragraph in doc.paragraphs:
             if paragraph.text.strip():
                 text_parts.append(paragraph.text.strip())
+        # 2. 表格单元格（表格式简历往往只有 tables，没有段落）
+        for table in doc.tables:
+            for row in table.rows:
+                row_cells = [cell.text.strip() for cell in row.cells if cell.text.strip()]
+                if row_cells:
+                    text_parts.append("  ".join(row_cells))
         return "\n".join(text_parts).strip()
     except Exception as e:
         raise RuntimeError(f"Word 文件解析失败：{str(e)}")
+
 
 
 def _parse_txt(file_path: str) -> str:
