@@ -1,0 +1,35 @@
+.git
+.gitignore
+.dockerignore
+.runtime
+.vscode
+.idea
+REMEDIATION_ROADMAP.md
+*.local.md
+
+# Python
+__pycache__
+*.py[cod]
+*.so
+.venv*
+venv
+env
+.pytest_cache
+.coverage
+htmlcov
+
+# Node
+node_modules
+frontend/node_modules
+frontend/dist
+
+# Databases & Uploads (Never bake private user data into images)
+backend/*.db
+backend/*.sqlite
+backend/uploads/*.pdf
+backend/uploads/*.docx
+backend/uploads/*.txt
+!backend/uploads/.gitkeep
+
+# Logs
+*.log
