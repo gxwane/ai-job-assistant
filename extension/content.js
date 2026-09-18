@@ -499,8 +499,8 @@
     autoCommunicate: false,
     hrRequirement: '3days',        // HR要求
     hrStatusAllowed: ["在线", "刚刚活跃", "今日活跃", "3日内活跃"], // 允许的HR状态列表
-    minDelay: 1,
-    maxDelay: 5,
+    minDelay: 15,
+    maxDelay: 45,
     results: [],
     stopRequested: false,
     pauseRequested: false,
@@ -2124,12 +2124,91 @@
     return simpleHash((title || '') + (company || '') + (salary || '') + (location || '') + (desc || '').substring(0, 200));
   }
 
+  // ============================================================
+  //  防封号与风控熔断机制 (Anti-Ban & Risk Circuit Breakers)
+  // ============================================================
+
+  function calculateGaussianJitter(minSec = 15, maxSec = 45) {
+    const u1 = Math.max(Math.random(), 1e-7);
+    const u2 = Math.random();
+    const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+    const mean = (minSec + maxSec) / 2.0;
+    const stdDev = (maxSec - minSec) / 6.0;
+    const delay = Math.round(mean + z0 * stdDev);
+    return Math.max(minSec, Math.min(maxSec, delay));
+  }
+
   async function randomSleep() {
-    const min = Math.max(scanState.minDelay, 1) * 1000;
-    const max = Math.max(scanState.maxDelay, scanState.minDelay + 1) * 1000;
-    const ms = Math.floor(Math.random() * (max - min + 1)) + min;
-    addScanLog(`随机等待 ${(ms / 1000).toFixed(1)} 秒...`);
-    return interruptibleSleep(ms, 'randomSleep');
+    const min = Math.max(scanState.minDelay, 15);
+    const max = Math.max(scanState.maxDelay, min + 1);
+    const sec = calculateGaussianJitter(min, max);
+    addScanLog(`拟人化高斯等待 ${sec} 秒（防机械高频检测）...`);
+    return interruptibleSleep(sec * 1000, 'randomSleep');
+  }
+
+  function getDailyCommKey() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `daily_comm_${y}-${m}-${day}`;
+  }
+
+  async function getDailyCommunicatedCount() {
+    const key = getDailyCommKey();
+    try {
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        const res = await chrome.storage.local.get([key]);
+        return res[key] || 0;
+      }
+      return parseInt(localStorage.getItem(key) || '0', 10);
+    } catch (e) {
+      return parseInt(localStorage.getItem(key) || '0', 10);
+    }
+  }
+
+  async function incrementDailyCommunicatedCount() {
+    const key = getDailyCommKey();
+    const current = await getDailyCommunicatedCount();
+    const updated = current + 1;
+    try {
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        await chrome.storage.local.set({ [key]: updated });
+      } else {
+        localStorage.setItem(key, String(updated));
+      }
+    } catch (e) {
+      localStorage.setItem(key, String(updated));
+    }
+    return updated;
+  }
+
+  function detectRiskCircuitBreaker() {
+    const captchaSelectors = [
+      '.geetest_holder', '.geetest_popup', '.geetest_radar_tip',
+      '[class*="geetest"]', '#captcha', '[class*="captcha"]',
+      '[class*="verify-wrap"]', '[class*="security-dialog"]',
+      '.dialog-wrap.verify-dialog',
+    ];
+    for (const sel of captchaSelectors) {
+      try {
+        const el = document.querySelector(sel);
+        if (el && el.offsetParent !== null) {
+          return { detected: true, reason: `匹配到风控元素: ${sel}` };
+        }
+      } catch (e) {}
+    }
+
+    const textContainers = document.querySelectorAll('.dialog-container, .dialog-wrap, .boss-popup, .modal-content, [role="dialog"]');
+    for (const container of textContainers) {
+      if (container.offsetParent !== null) {
+        const text = container.innerText || '';
+        if (/操作过于频繁|操作频繁|系统检测到异常|安全验证|安全校验|请完成验证/.test(text)) {
+          return { detected: true, reason: `检测到风控提示文本: "${text.substring(0, 30)}"` };
+        }
+      }
+    }
+    return { detected: false };
   }
 
   async function resumeScanFromProgress() {
@@ -2691,9 +2770,26 @@
     try {
       addLog(`准备沟通：${result.job_title || result.jobTitle} / ${result.company}`);
 
+      // ★ 风控熔断检查（前置）：检查是否已出现验证码或操作频繁
+      const preRisk = detectRiskCircuitBreaker();
+      if (preRisk.detected) {
+        addLog(`🚨 [风控熔断] ${preRisk.reason}！已紧急停止自动化操作！`);
+        scanState.stopRequested = true;
+        return false;
+      }
+
+      // ★ 单日配额检查：默认上限 20 次
+      const dailyCount = await getDailyCommunicatedCount();
+      const DAILY_LIMIT = 20;
+      if (dailyCount >= DAILY_LIMIT) {
+        addLog(`⚠️ [风控拦截] 今日自动沟通已达硬上限（${dailyCount}/${DAILY_LIMIT}次），已强制停止沟通保护账号！`);
+        scanState.stopRequested = true;
+        return false;
+      }
+
       if (options.source === 'auto') {
-        const delay = Math.floor(Math.random() * (scanState.maxDelay - scanState.minDelay + 1)) + scanState.minDelay;
-        addLog(`自动沟通前随机等待 ${delay} 秒...`);
+        const delay = calculateGaussianJitter(scanState.minDelay, scanState.maxDelay);
+        addLog(`自动沟通前高斯拟人等待 ${delay} 秒...`);
         await safeSleep(delay * 1000, 'pre communicate');
       }
 
@@ -2716,6 +2812,15 @@
       addLog('正在点击"立即沟通"');
       try { chatBtn.click(); } catch(e) { addLog('点击按钮失败'); return false; }
 
+      // ★ 风控熔断检查（后置）：点击后检测是否弹出验证码
+      await sleep(1000);
+      const postRisk = detectRiskCircuitBreaker();
+      if (postRisk.detected) {
+        addLog(`🚨 [风控熔断] 点击后触发安全验证（${postRisk.reason}），已紧急熔断停止！`);
+        scanState.stopRequested = true;
+        return false;
+      }
+
       // ★ 步骤3：等待弹窗 → 关闭弹窗
       const closed = await waitAndCloseBossPopupAfterClick(10000);
 
@@ -2724,12 +2829,15 @@
         try {
           await chrome.runtime.sendMessage({ action: 'markCommunicated', recordId: result.job_record_id });
           scanState.communicatedCount++;
-          addLog('沟通成功，已通知后端');
+          await incrementDailyCommunicatedCount();
+          const todayCount = await getDailyCommunicatedCount();
+          addLog(`沟通成功（今日累计沟通 ${todayCount}/${DAILY_LIMIT} 次）`);
           updateScanStatus();
           return true;
         } catch (e) {
           addLog('通知后端失败（沟通已成功）');
           scanState.communicatedCount++;
+          await incrementDailyCommunicatedCount();
           return true;
         }
       } else {
