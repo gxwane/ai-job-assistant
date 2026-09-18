@@ -2,9 +2,7 @@
 岗位记录管理 API 路由
 管理插件捕获的岗位记录（CRUD + 状态筛选 + 批量操作 + 面试题生成）
 """
-import json
 import logging
-import re
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, func
@@ -19,8 +17,7 @@ from ..schemas import (
     BatchUpdateJobStatusRequest,
     PaginatedResponse,
 )
-from ..services.llm_client import llm_client
-from ..prompts.job_match_prompt import INTERVIEW_QUESTIONS_PROMPT
+from ..services.interview_service import generate_job_interview_questions
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/job-records", tags=["岗位记录管理"])
@@ -192,27 +189,14 @@ def generate_interview_questions(record_id: int, db: Session = Depends(get_db)):
     if not resume_text:
         raise HTTPException(status_code=400, detail="该岗位未关联简历，无法生成面试题")
 
-    # 调用大模型生成面试题
-    prompt = INTERVIEW_QUESTIONS_PROMPT.format(
-        resume_content=resume_text[:4000],
-        job_title=record.job_title,
-        job_description=record.job_description[:3000],
-    )
-
-    system_prompt = "你是一名资深技术面试官。你必须严格使用中文回复，只输出JSON，不要任何额外文本。"
     try:
-        raw_response = llm_client.chat_stream(
-            system_prompt=system_prompt,
-            user_prompt=prompt,
-            temperature=0.3,
-            max_tokens=16384,
-            timeout=240.0,  # 流式输出，4分钟兜底超时
+        questions_data = generate_job_interview_questions(
+            job_title=record.job_title,
+            job_description=record.job_description,
+            resume_content=resume_text,
         )
-        questions_data = _parse_interview_json(raw_response)
     except Exception as e:
-        raw = raw_response[:300] if 'raw_response' in dir() else ''
-        logger.error(f"面试题生成失败: {e}\n原始响应前300: {raw}")
-        raise HTTPException(status_code=500, detail=f"面试题生成失败：{str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
     # 保存到数据库
     record.interview_questions_json = questions_data
@@ -224,87 +208,3 @@ def generate_interview_questions(record_id: int, db: Session = Depends(get_db)):
         "data": questions_data,
     }
 
-
-def _parse_interview_json(raw_text: str) -> dict:
-    """兼容大模型返回的各种JSON格式问题（含截断修复）"""
-    text = raw_text.strip()
-
-    # 去掉markdown代码块
-    m = re.search(r'```(?:json)?\s*\n?(.*?)\n?```', text, re.DOTALL)
-    if m:
-        text = m.group(1).strip()
-
-    # 找到JSON起止
-    start = text.find("{")
-    end = text.rfind("}") + 1
-    if start == -1 or end <= start:
-        raise ValueError("未找到有效JSON")
-
-    json_str = text[start:end]
-
-    # 尝试多种修复
-    errors = []
-    for attempt in range(5):
-        try:
-            return json.loads(json_str)
-        except json.JSONDecodeError as e:
-            errors.append(str(e))
-            if attempt == 0:
-                # 修复1: 移除尾部逗号
-                json_str = re.sub(r',\s*}', '}', json_str)
-                json_str = re.sub(r',\s*]', ']', json_str)
-            elif attempt == 1:
-                # 修复2: 单引号改双引号
-                json_str = re.sub(r"'", '"', json_str)
-            elif attempt == 2:
-                # 修复3: 去掉未转义控制字符
-                json_str = re.sub(r'[\x00-\x1f\x7f]', ' ', json_str)
-            elif attempt == 3:
-                # 修复4: 补全截断的JSON（缺少 } 或 ]）
-                json_str = _close_truncated_json(json_str)
-            elif attempt == 4:
-                # 修复5: 去掉最后不完整的元素再试
-                last_comma = json_str.rfind(',\n')
-                if last_comma > 0:
-                    json_str = json_str[:last_comma] + '\n  ]\n}'
-                    json_str = _close_truncated_json(json_str)
-
-    raise ValueError(f"JSON解析全部失败: {'; '.join(errors[:2])}")
-
-
-def _close_truncated_json(s: str) -> str:
-    """补全被截断的JSON：统计未闭合的括号并补上"""
-    stack = []
-    in_string = False
-    escape = False
-    for ch in s:
-        if escape:
-            escape = False
-            continue
-        if ch == '\\' and in_string:
-            escape = True
-            continue
-        if ch == '"':
-            in_string = not in_string
-            continue
-        if in_string:
-            continue
-        if ch in '{[':
-            stack.append(ch)
-        elif ch == '}':
-            if stack and stack[-1] == '{':
-                stack.pop()
-        elif ch == ']':
-            if stack and stack[-1] == '[':
-                stack.pop()
-
-    # 去掉可能被截断的最后一个不完整元素
-    s = re.sub(r',\s*$', '', s)
-    s = re.sub(r'"[^"]*$', '"', s)
-    s = re.sub(r'[^\s]*$', '', s)
-    s = s.rstrip()
-
-    # 补上缺失的闭合括号
-    for ch in reversed(stack):
-        s += ']' if ch == '[' else '}'
-    return s
