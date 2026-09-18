@@ -10,9 +10,19 @@ P2-T2: 启动期无感数据库结构自检测与自动模式同步单元测试
 """
 import pytest
 from sqlalchemy import (
-    create_engine, text, inspect, MetaData, Table, Column,
-    Integer, String, Text as SqlText, JSON, Boolean, DateTime
+    JSON,
+    Boolean,
+    Column,
+    Integer,
+    MetaData,
+    String,
+    Table,
+    create_engine,
+    inspect,
+    text,
 )
+from sqlalchemy import Text as SqlText
+
 from app.database import auto_migrate_schema
 
 

@@ -4,9 +4,10 @@ FastAPI 应用主文件
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .database import init_db
+
 from .config import MOCK_MODE
-from .routers import resume, analysis, history, plugin, job_records, ocr, statistics
+from .database import init_db
+from .routers import analysis, history, job_records, ocr, plugin, resume, statistics
 
 # 创建 FastAPI 应用
 app = FastAPI(

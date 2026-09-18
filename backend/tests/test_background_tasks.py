@@ -6,8 +6,9 @@ P2-T1: BackgroundTasks 异步任务解耦测试
 - 异步阶段测试（run_analysis_background）：patch SessionLocal 与 LLM 分析服务，验证状态流转及异常流转。
 - 面试题生成异步测试：直接调用路由函数，验证 BackgroundTasks 队列挂载与 200/202 动态状态码。
 """
-import pytest
 from unittest.mock import patch
+
+import pytest
 from fastapi import BackgroundTasks, HTTPException, Response, status
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -15,7 +16,6 @@ from sqlalchemy.orm import sessionmaker
 from app.database import Base
 from app.models import JobRecord, Resume
 from app.services.plugin_service import capture_job_from_plugin, run_analysis_background
-
 
 # ========== 测试专用 in-memory DB ==========
 

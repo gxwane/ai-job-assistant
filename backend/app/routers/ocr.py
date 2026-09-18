@@ -3,6 +3,7 @@ OCR 字段提取 API
 用于识别截图中的公司名和薪资
 """
 from fastapi import APIRouter
+
 from ..schemas import OCRExtractRequest, OCRExtractResponse
 from ..services.ocr_service import extract_field
 

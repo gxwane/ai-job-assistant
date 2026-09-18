@@ -1,0 +1,99 @@
+name: "🐛 Bug 报告 (Bug Report)"
+description: 提交关于系统运行、接口调用、前端渲染或浏览器插件的问题缺陷
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢您提交 Bug 反馈！请在提交前先在 Issues 列表中搜索是否已有相同问题，并确认已查阅 [README.md](https://github.com/SouthMountain88/ai-job-assistant/blob/main/README.md)。
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: 操作系统 (Operating System)
+      description: 您正在运行此项目的操作系统
+      options:
+        - Windows 10 / 11
+        - macOS (Apple Silicon M系列)
+        - macOS (Intel)
+        - Ubuntu / Debian Linux
+        - CentOS / RHEL / Rocky Linux
+        - Docker 容器环境
+        - 其他 (Other)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: runtime
+    attributes:
+      label: 后端运行方式 (Backend Runtime)
+      options:
+        - Astral uv (推荐)
+        - Python 3.11 原生 venv
+        - Python 3.12 原生 venv
+        - Docker Compose 一键启动
+        - 其他
+    validations:
+      required: true
+
+  - type: dropdown
+    id: llm_provider
+    attributes:
+      label: 使用的大模型服务商 (LLM Provider)
+      options:
+        - DeepSeek (deepseek-chat / deepseek-reasoner)
+        - OpenAI (gpt-4o / gpt-4o-mini 等)
+        - 硅基流动 SiliconFlow
+        - 月之暗面 Moonshot / Kimi
+        - 本地 Ollama / vLLM
+        - 未配置 API Key (Mock 模式)
+        - 其他 OpenAI 兼容端点
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述 (Problem Description)
+      description: 请清晰描述遇到了什么问题或异常行为
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤 (Steps to Reproduce)
+      description: 请提供能复现该问题的具体操作步骤
+      placeholder: |
+        1. 启动后端 `uv run uvicorn app.main:app`
+        2. 上传 PDF 格式简历
+        3. 点击【岗位匹配分析】
+        4. 观察到控制台抛出异常...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为 (Expected Behavior)
+      description: 您期望系统表现出什么行为
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 终端日志 / 报错堆栈 (Terminal Logs & Traceback)
+      description: 请粘贴终端或浏览器控制台的报错信息
+      render: shell
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: 自检清单 (Pre-submission Checklist)
+      options:
+        - label: 我已确认所贴日志中不包含真实的 API Key 或敏感私密信息
+          required: true
+        - label: 我已在已关闭或未解决的 Issue 中检索过类似问题
+          required: true

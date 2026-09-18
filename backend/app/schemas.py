@@ -1,9 +1,10 @@
 """
 Pydantic 数据验证模型（请求/响应结构）
 """
-from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any, Generic, TypeVar
 from datetime import datetime
+from typing import Any, Generic, TypeVar
+
+from pydantic import BaseModel, Field
 
 T = TypeVar('T')
 
@@ -48,7 +49,7 @@ class ScoreBreakdown(BaseModel):
     education_score: int = Field(..., ge=0, le=15, description="学历背景评分")
     potential_score: int = Field(..., ge=0, le=15, description="发展潜力评分")
     raw_total: int = Field(..., description="原始总分")
-    final_cap: Optional[int] = Field(None, description="触发的分数上限")
+    final_cap: int | None = Field(None, description="触发的分数上限")
     final_score: int = Field(..., ge=0, le=100, description="最终分数")
 
 
@@ -57,10 +58,10 @@ class AnalysisResult(BaseModel):
     # 原有字段
     match_score: int = Field(..., ge=0, le=100, description="最终匹配度评分（后端计算）")
     summary: str = Field(..., description="总体评价")
-    matched_points: List[str] = Field(default_factory=list, description="匹配优势")
-    missing_skills: List[str] = Field(default_factory=list, description="缺失技能")
-    resume_suggestions: List[str] = Field(default_factory=list, description="简历优化建议")
-    interview_questions: List[InterviewQuestion] = Field(default_factory=list, description="面试高频问题")
+    matched_points: list[str] = Field(default_factory=list, description="匹配优势")
+    missing_skills: list[str] = Field(default_factory=list, description="缺失技能")
+    resume_suggestions: list[str] = Field(default_factory=list, description="简历优化建议")
+    interview_questions: list[InterviewQuestion] = Field(default_factory=list, description="面试高频问题")
 
     # 新增：方向判断
     resume_category: str = Field("", description="候选人职业方向")
@@ -69,18 +70,18 @@ class AnalysisResult(BaseModel):
     category_reason: str = Field("", description="方向判断理由")
 
     # 新增：核心技能分析
-    core_job_skills: List[str] = Field(default_factory=list, description="JD要求的关键硬技能")
-    resume_skills: List[str] = Field(default_factory=list, description="候选人掌握的硬技能")
-    matched_core_skills: List[str] = Field(default_factory=list, description="匹配的核心技能")
-    missing_core_skills: List[str] = Field(default_factory=list, description="缺失的核心技能")
+    core_job_skills: list[str] = Field(default_factory=list, description="JD要求的关键硬技能")
+    resume_skills: list[str] = Field(default_factory=list, description="候选人掌握的硬技能")
+    matched_core_skills: list[str] = Field(default_factory=list, description="匹配的核心技能")
+    missing_core_skills: list[str] = Field(default_factory=list, description="缺失的核心技能")
     core_skill_hit_rate: float = Field(0.0, ge=0.0, le=1.0, description="核心技能命中率")
 
     # 新增：后端计算的评分结果
-    score_breakdown: Optional[Dict[str, Any]] = Field(None, description="分项评分明细")
+    score_breakdown: dict[str, Any] | None = Field(None, description="分项评分明细")
     score_level: str = Field("", description="评分等级")
     recommendation: str = Field("", description="投递建议")
-    score_cap_reason: Optional[str] = Field(None, description="分数封顶原因")
-    risk_warnings: List[str] = Field(default_factory=list, description="风险提示")
+    score_cap_reason: str | None = Field(None, description="分数封顶原因")
+    risk_warnings: list[str] = Field(default_factory=list, description="风险提示")
 
 
 class AnalysisResponse(BaseModel):
@@ -112,7 +113,7 @@ class HistoryListItem(BaseModel):
 
 class BatchDeleteRequest(BaseModel):
     """批量删除请求"""
-    ids: List[int] = Field(..., min_length=1, description="要删除的记录ID列表")
+    ids: list[int] = Field(..., min_length=1, description="要删除的记录ID列表")
 
 
 class DeleteResponse(BaseModel):
@@ -125,7 +126,7 @@ class BatchDeleteResponse(BaseModel):
     """批量删除响应"""
     message: str
     deleted_count: int
-    deleted_ids: List[int]
+    deleted_ids: list[int]
 
 
 class HistoryDetailResponse(BaseModel):
@@ -138,8 +139,8 @@ class HistoryDetailResponse(BaseModel):
     result_json: AnalysisResult
     created_at: datetime
     # 附带简历基本信息
-    resume_filename: Optional[str] = None
-    resume_content: Optional[str] = None
+    resume_filename: str | None = None
+    resume_content: str | None = None
 
     class Config:
         from_attributes = True
@@ -149,41 +150,41 @@ class HistoryDetailResponse(BaseModel):
 
 class PluginJobCaptureRequest(BaseModel):
     """插件发送岗位信息请求"""
-    resume_id: Optional[int] = Field(None, description="关联的简历ID，为空则只保存不分析")
+    resume_id: int | None = Field(None, description="关联的简历ID，为空则只保存不分析")
     job_title: str = Field(..., min_length=1, max_length=255, description="岗位名称")
-    company: Optional[str] = Field(None, max_length=255, description="公司名称")
-    salary: Optional[str] = Field(None, max_length=100, description="薪资范围")
-    location: Optional[str] = Field(None, max_length=100, description="工作地点")
+    company: str | None = Field(None, max_length=255, description="公司名称")
+    salary: str | None = Field(None, max_length=100, description="薪资范围")
+    location: str | None = Field(None, max_length=100, description="工作地点")
     job_url: str = Field(..., min_length=1, max_length=1000, description="岗位链接")
     job_description: str = Field(..., min_length=10, description="岗位JD文本")
     # 自动筛选新增字段
-    captured_page_url: Optional[str] = Field(None, max_length=1000, description="捕获时的列表页URL")
-    card_index: Optional[int] = Field(None, description="岗位在列表中序号")
-    job_unique_key: Optional[str] = Field(None, max_length=128, description="岗位唯一标识（去重用）")
-    scan_session_id: Optional[str] = Field(None, max_length=64, description="扫描批次ID")
+    captured_page_url: str | None = Field(None, max_length=1000, description="捕获时的列表页URL")
+    card_index: int | None = Field(None, description="岗位在列表中序号")
+    job_unique_key: str | None = Field(None, max_length=128, description="岗位唯一标识（去重用）")
+    scan_session_id: str | None = Field(None, max_length=64, description="扫描批次ID")
 
 
 class PluginJobCaptureResponse(BaseModel):
     """插件捕获岗位的返回"""
     success: bool
     job_record_id: int
-    match_score: Optional[int] = None
-    score_level: Optional[str] = None
-    recommendation: Optional[str] = None
+    match_score: int | None = None
+    score_level: str | None = None
+    recommendation: str | None = None
     should_recommend: bool = False
     status: str
     message: str
     # 新增：结构化解析结果
     job_tags: list = Field(default_factory=list, description="岗位标签/技能标签")
-    hr_name: Optional[str] = Field(None, description="HR姓名")
-    hr_status: Optional[str] = Field(None, description="HR活跃状态")
-    hr_active_score: Optional[int] = Field(None, description="HR活跃分值")
-    composite_score: Optional[int] = Field(None, description="综合推荐指数")
+    hr_name: str | None = Field(None, description="HR姓名")
+    hr_status: str | None = Field(None, description="HR活跃状态")
+    hr_active_score: int | None = Field(None, description="HR活跃分值")
+    composite_score: int | None = Field(None, description="综合推荐指数")
 
 
 class MarkCommunicatedRequest(BaseModel):
     """标记已沟通请求"""
-    message: Optional[str] = Field(None, description="可选备注")
+    message: str | None = Field(None, description="可选备注")
 
 
 # ==================== 岗位记录管理相关 ====================
@@ -191,31 +192,31 @@ class MarkCommunicatedRequest(BaseModel):
 class JobRecordResponse(BaseModel):
     """岗位记录响应"""
     id: int
-    resume_id: Optional[int] = None
+    resume_id: int | None = None
     job_title: str
-    company: Optional[str] = None
-    salary: Optional[str] = None
-    location: Optional[str] = None
+    company: str | None = None
+    salary: str | None = None
+    location: str | None = None
     job_url: str
     job_description: str
-    match_score: Optional[int] = None
-    score_level: Optional[str] = None
-    recommendation: Optional[str] = None
+    match_score: int | None = None
+    score_level: str | None = None
+    recommendation: str | None = None
     status: str
     source: str
-    communicated_at: Optional[datetime] = None
+    communicated_at: datetime | None = None
     created_at: datetime
-    updated_at: Optional[datetime] = None
+    updated_at: datetime | None = None
     # 结构化解析字段
-    job_tags: Optional[str] = None
-    clean_job_description: Optional[str] = None
-    raw_job_text: Optional[str] = None
-    hr_name: Optional[str] = None
-    hr_status: Optional[str] = None
-    hr_active_score: Optional[int] = None
-    composite_score: Optional[int] = None
+    job_tags: str | None = None
+    clean_job_description: str | None = None
+    raw_job_text: str | None = None
+    hr_name: str | None = None
+    hr_status: str | None = None
+    hr_active_score: int | None = None
+    composite_score: int | None = None
     # 异步分析状态
-    analysis_status: Optional[str] = None
+    analysis_status: str | None = None
 
     class Config:
         from_attributes = True
@@ -223,13 +224,13 @@ class JobRecordResponse(BaseModel):
 
 class JobRecordDetailResponse(JobRecordResponse):
     """岗位记录详情（含完整分析JSON）"""
-    score_breakdown: Optional[Dict[str, Any]] = None
-    analysis_result_json: Optional[Dict[str, Any]] = None
+    score_breakdown: dict[str, Any] | None = None
+    analysis_result_json: dict[str, Any] | None = None
 
 
 class BatchUpdateJobStatusRequest(BaseModel):
     """批量更新岗位状态请求"""
-    ids: List[int] = Field(..., min_length=1, description="岗位记录ID列表")
+    ids: list[int] = Field(..., min_length=1, description="岗位记录ID列表")
     status: str = Field(..., description="目标状态：captured/analyzed/recommended/communicated/ignored/interview")
 
 
@@ -264,12 +265,12 @@ class AsyncTaskResponse(BaseModel):
     message: str = Field(..., description="提示信息")
     # 快速解析结果（本地解析，无需等待LLM）
     job_tags: list = Field(default_factory=list, description="岗位技能标签（本地解析）")
-    hr_name: Optional[str] = Field(None, description="HR姓名（本地解析）")
-    hr_status: Optional[str] = Field(None, description="HR活跃状态（本地解析）")
-    hr_active_score: Optional[int] = Field(None, description="HR活跃分值（本地解析）")
+    hr_name: str | None = Field(None, description="HR姓名（本地解析）")
+    hr_status: str | None = Field(None, description="HR活跃状态（本地解析）")
+    hr_active_score: int | None = Field(None, description="HR活跃分值（本地解析）")
     # 向后兼容与防御性兜底字段（异步分析完成前为 None/False）
-    match_score: Optional[int] = Field(None, description="匹配度评分")
-    score_level: Optional[str] = Field(None, description="评分等级")
-    recommendation: Optional[str] = Field(None, description="投递建议")
+    match_score: int | None = Field(None, description="匹配度评分")
+    score_level: str | None = Field(None, description="评分等级")
+    recommendation: str | None = Field(None, description="投递建议")
     should_recommend: bool = Field(False, description="是否建议沟通")
-    composite_score: Optional[int] = Field(None, description="综合推荐指数")
+    composite_score: int | None = Field(None, description="综合推荐指数")

@@ -5,8 +5,10 @@
 V2: 异步解耦 - 岗位捕获立即返回 202，AI 分析在后台执行
 """
 from datetime import datetime
+
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
+
 from ..database import get_db
 from ..models import JobRecord
 from ..schemas import (

@@ -14,10 +14,8 @@ Coverage targets:
 - Fallback dict structure matches expected schema
 """
 import json
-import pytest
 
 from app.services.analysis_service import _parse_llm_json
-
 
 # ── Fixtures ───────────────────────────────────────────────────────────────────
 

@@ -4,15 +4,8 @@ PDF 报告生成服务
 """
 import io
 import os
-import re
 import tempfile
-from collections import Counter
 from datetime import datetime
-from sqlalchemy.orm import Session
-from sqlalchemy import desc
-
-from ..models import JobRecord, Resume
-
 
 # ==================== 中文字体探测与注册 ====================
 
@@ -182,8 +175,8 @@ def generate_job_report_pdf(
     Returns:
         (BytesIO 数据流, 建议下载文件名)
     """
-    from reportlab.lib.pagesizes import A4
     from reportlab.lib.colors import HexColor
+    from reportlab.lib.pagesizes import A4
     from reportlab.pdfgen import canvas as rl_canvas
 
     now = datetime.now()

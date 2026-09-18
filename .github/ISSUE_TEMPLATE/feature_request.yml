@@ -1,0 +1,45 @@
+name: "💡 功能建议 (Feature Request)"
+description: 为 AI Job Assistant 提出新特性、算法优化或体验改进方案
+title: "[Feature]: "
+labels: ["enhancement", "discussion"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢您为 AI Job Assistant 的长期演进贡献宝贵想法！请详细描述您的功能提案。
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: 涉及的核心模块 (Affected Component)
+      options:
+        - 浏览器插件模块 (Chrome Extension / 自动抓取 / 风控防护)
+        - 后端服务引擎 (FastAPI / 算法模型 / 匹配逻辑 / PDF 报表)
+        - 前端界面与交互 (Vue 3 / Element Plus / 数据可视化)
+        - 数据库与数据持久化 (SQLite / SQLAlchemy)
+        - 部署与 DevOps (Docker / uv / 脚本工具)
+        - 其他 / 全局架构
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: 需求背景与痛点 (Problem / Motivation)
+      description: 当前系统缺少什么能力？解决了求职流程中的什么痛点？
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 提议的具体方案 (Proposed Solution)
+      description: 请详细描述您期望该功能如何运作、接口或 UI 交互如何设计
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 考虑过的替代方案 (Alternatives Considered)
+      description: 是否有其他折中方案或临时解决方法？

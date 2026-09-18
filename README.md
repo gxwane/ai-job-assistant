@@ -9,7 +9,7 @@
 | 层 | 技术 |
 |---|---|
 | 前端 | Vue 3 + Vite + Element Plus + Pinia + ECharts + Axios + Vue Router |
-| 后端 | FastAPI + Python 3.10+ + SQLAlchemy + SQLite |
+| 后端 | FastAPI + Python 3.11+ + SQLAlchemy + SQLite |
 | 简历解析 | pypdf (PDF) + python-docx (Word) + TXT |
 | AI | DeepSeek API（也支持兼容 OpenAI 格式的其他大模型） |
 | OCR | EasyOCR（插件截图识别公司名/薪资） |
@@ -22,7 +22,7 @@
 
 ### 环境要求
 
-- Python 3.10+ (推荐安装 [Astral uv](https://docs.astral.sh/uv/))
+- Python 3.11+ (推荐安装 [Astral uv](https://docs.astral.sh/uv/))
 - Node.js 18+
 - Edge 或 Chrome 浏览器
 
@@ -114,11 +114,15 @@ npm run dev
 
 ### 全栈质量门禁自动化验证 (Gauntlet)
 
-在提交代码或发布前，可运行自动化门禁套件一键验证全栈质量指标（77 项后端测试 + 39 项前端测试 + Vite 生产打包构建）：
+在提交代码或发布前，可运行自动化门禁套件一键验证全栈质量指标（Ruff 静态检查 + 94 项后端测试 + 39 项前端测试 + Vite 生产构建 + 扩展构建）：
 
 - **Windows**：
   ```cmd
   scripts\verify_gauntlet.bat
+  ```
+  或在 PowerShell 中执行：
+  ```powershell
+  powershell -ExecutionPolicy Bypass -File scripts\verify_gauntlet.ps1
   ```
 - **Linux / macOS / CI**：
   ```bash
@@ -156,7 +160,7 @@ ai-job-assistant/
 │   │   │   ├── ocr_service.py       # OCR 服务（动态按需降级加载）
 │   │   │   └── job_parser.py        # Boss直聘文本结构化解析引擎
 │   │   └── prompts/                 # LLM Prompt 模板
-│   ├── tests/                       # 后端 pytest 单元测试套件 (77 项用例) ★
+│   ├── tests/                       # 后端 pytest 单元测试套件 (94 项用例) ★
 │   ├── pyproject.toml               # Astral uv 现代依赖规范 ★
 │   ├── uv.lock                      # 依赖确定性跨平台锁定文件 ★
 │   ├── .env.example                 # 配置文件模板（安全脱敏）
@@ -434,7 +438,7 @@ DEEPSEEK_API_KEY=sk-your-api-key
 
 ## 注意事项
 
-1. Boss 直聘页面 DOM 可能变化，如信息提取失败需更新 `extension/content.js` 中的 SELECTORS
+1. Boss 直聘页面 DOM 可能变化，如信息提取失败需更新 `extension/src/config.js` 中的 SELECTORS 并重新编译 (`npm run build:extension`)
 2. 插件默认不自动翻页，只扫描当前页
 3. 自动沟通**默认关闭**，需用户主动开启
 4. 所有数据仅存储在本地 SQLite 数据库和本地文件系统

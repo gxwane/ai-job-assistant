@@ -9,8 +9,8 @@
   5. HR信息块 → 提取 hr_name, hr_status
   6. 不依赖 _fix_broken_lines（避免破坏编号内容）
 """
-import re
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 

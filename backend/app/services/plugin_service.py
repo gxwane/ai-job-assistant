@@ -5,11 +5,13 @@ V3: 异步解耦 - 同步保存 + BackgroundTasks 后台分析
 """
 import json
 import logging
+
 from sqlalchemy.orm import Session
+
 from ..database import SessionLocal
-from ..models import Resume, JobRecord
+from ..models import JobRecord, Resume
 from .analysis_service import analyze_job_match
-from .job_parser import parse_job_text, clean_job_tags_for_matching
+from .job_parser import clean_job_tags_for_matching, parse_job_text
 
 logger = logging.getLogger(__name__)
 

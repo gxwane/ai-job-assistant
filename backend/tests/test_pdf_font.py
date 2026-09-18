@@ -7,11 +7,12 @@ Coverage targets:
 - draw_cn fallback never raises UnicodeEncodeError even when no Chinese font is present
 """
 import io
-import pytest
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4
 
-from app.routers.statistics import _find_cn_font, _get_cn_font
+import pytest
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+
+from app.routers.statistics import _find_cn_font
 
 
 class TestFontDiscovery:
@@ -20,6 +21,7 @@ class TestFontDiscovery:
     def test_candidates_cover_linux_distributions(self):
         """Verify candidate list contains Debian/Ubuntu/CentOS font locations."""
         import inspect
+
         from app.routers import statistics
         source = inspect.getsource(statistics._find_cn_font)
         assert "wqy-zenhei" in source

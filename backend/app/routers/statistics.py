@@ -1,31 +1,28 @@
-"""
-数据统计 API 路由
-V2: 专业 PDF 报告 + matplotlib 图表 + 中文支持
-"""
-import io
-import os
+import json
 import re
-import tempfile
 from collections import Counter
-from datetime import datetime
-
-from fastapi import APIRouter, Depends, HTTPException, Query
 from urllib.parse import quote
+
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
-from sqlalchemy.orm import Session
 from sqlalchemy import desc, func
+from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Resume, AnalysisRecord, JobRecord
-
-router = APIRouter(prefix="/api/statistics", tags=["数据统计"])
-
-# ==================== 报告服务接入 ====================
+from ..models import JobRecord, Resume
 from ..services.pdf_report_service import (
     find_cn_font as _find_cn_font,
-    get_cn_font as _get_cn_font,
+)
+from ..services.pdf_report_service import (
     generate_job_report_pdf,
 )
+from ..services.pdf_report_service import (
+    get_cn_font as _get_cn_font,
+)
+
+__all__ = ["_find_cn_font", "_get_cn_font", "router"]
+
+router = APIRouter(prefix="/api/statistics", tags=["数据统计"])
 
 # ==================== 统计接口 ====================
 
@@ -162,7 +159,7 @@ def export_pdf_report(db: Session = Depends(get_db)):
         try:
             data = jr.analysis_result_json
             if isinstance(data, str):
-                import json; data = json.loads(data)
+                data = json.loads(data)
             for skill in (data.get("missing_skills") or []):
                 skill_counter[skill] += 1
             title = jr.job_title or ""
@@ -192,48 +189,3 @@ def export_pdf_report(db: Session = Depends(get_db)):
         media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(filename)}"},
     )
-
-
-
-def _generate_summary(overview, top_directions, top_skills, top10):
-    """根据统计生成 AI 总结"""
-    lines = []
-
-    avg = overview["average_score"]
-    if avg >= 80:
-        lines.append("【总体评价】当前简历与目标岗位平均匹配度为%.0f分，竞争力较强。" % avg)
-    elif avg >= 60:
-        lines.append("【总体评价】当前简历与目标岗位平均匹配度为%.0f分，已具备一定竞争力，但仍存在提升空间。" % avg)
-    else:
-        lines.append("【总体评价】当前简历与目标岗位平均匹配度较低（%.0f分），建议优化简历关键词和项目描述。" % avg)
-
-    lines.append("")
-
-    if top_directions and top_directions[0][1] > 0:
-        dirs = ", ".join(d[0] for d in top_directions[:5])
-        lines.append(f"【优势方向】{dirs}")
-
-    lines.append("")
-
-    if top_skills and top_skills[0][1] > 0:
-        skills = ", ".join(s[0] for s in top_skills[:5])
-        lines.append(f"【技能短板】{skills}")
-
-    lines.append("")
-
-    if len(top10) > 0:
-        hi80 = [j for j in top10 if (j["match_score"] or 0) >= 80]
-        if hi80:
-            lines.append(f"【高匹配机会】共有{len(hi80)}个岗位匹配度超过80分：")
-            for j in hi80[:5]:
-                lines.append(f"  {j['job_title']} @ {j['company'] or '-'} - {j['match_score']}分")
-
-    lines.append("")
-    lines.append("【建议】")
-    if avg < 70:
-        lines.append("1. 优化简历中技能关键词，补充JD中频繁出现的缺少技能。")
-    lines.append("2. 优先投递80分以上高匹配岗位，提高沟通成功率。")
-    if overview["communicated_jobs"] < overview["recommended_jobs"] * 0.3:
-        lines.append("3. 已沟通率偏低，建议主动点击沟通按钮联系高匹配岗位。")
-
-    return {"summary": "\n".join(lines)}

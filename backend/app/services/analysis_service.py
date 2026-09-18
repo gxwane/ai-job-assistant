@@ -3,10 +3,11 @@
 组合简历解析、大模型调用、后端硬规则评分
 """
 import json
-import re
 import logging
-from .llm_client import llm_client
+import re
+
 from ..prompts.job_match_prompt import JOB_MATCH_PROMPT
+from .llm_client import llm_client
 
 logger = logging.getLogger(__name__)
 

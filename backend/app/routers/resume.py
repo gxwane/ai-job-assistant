@@ -4,17 +4,19 @@
 import hashlib
 import os
 import uuid
-from datetime import datetime, timezone
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Query
+from datetime import UTC, datetime
+
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+from sqlalchemy import desc
 from sqlalchemy.orm import Session
-from sqlalchemy import desc, func
+
+from ..config import ALLOWED_EXTENSIONS, UPLOAD_DIR
 from ..database import get_db
 from ..models import Resume
 from ..schemas import ResumeResponse
 from ..services.resume_parser import parse_resume
-from ..config import UPLOAD_DIR, ALLOWED_EXTENSIONS
 
 router = APIRouter(prefix="/api/resume", tags=["简历管理"])
 
@@ -71,7 +73,7 @@ async def upload_resume(
         # 内容重复 → 删除刚保存的文件，刷新已有简历的时间戳使其成为"最新"
         if os.path.exists(file_path):
             os.remove(file_path)
-        existing.created_at = datetime.now(timezone.utc)
+        existing.created_at = datetime.now(UTC)
         db.commit()
         db.refresh(existing)
         print(f"[去重] 简历内容重复，刷新已有简历 ID={existing.id} ({existing.filename}) 为最新")
@@ -205,7 +207,7 @@ def delete_resume(resume_id: int, db: Session = Depends(get_db)):
     db.delete(resume)
     db.commit()
 
-    return {"message": f"简历已删除", "deleted_id": deleted_id}
+    return {"message": "简历已删除", "deleted_id": deleted_id}
 
 
 class BatchDeleteRequest(BaseModel):

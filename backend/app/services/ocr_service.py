@@ -12,8 +12,8 @@ import re
 # PIL and numpy are part of the optional [ocr] extra.
 # Import them lazily so the module can still be loaded when OCR is not installed.
 try:
-    from PIL import Image, ImageEnhance, ImageFilter  # noqa: F401
     import numpy as np
+    from PIL import Image, ImageEnhance, ImageFilter  # noqa: F401
     _PIL_AVAILABLE = True
 except ImportError:
     _PIL_AVAILABLE = False

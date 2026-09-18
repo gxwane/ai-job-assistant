@@ -2,8 +2,9 @@
 全局配置文件
 从 .env 文件读取配置，如果没有则使用默认值
 """
-from decouple import config, Csv
 import os
+
+from decouple import config
 
 # 项目根目录
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

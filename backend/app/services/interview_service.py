@@ -6,8 +6,8 @@ import json
 import logging
 import re
 
-from .llm_client import llm_client
 from ..prompts.job_match_prompt import INTERVIEW_QUESTIONS_PROMPT
+from .llm_client import llm_client
 
 logger = logging.getLogger(__name__)
 

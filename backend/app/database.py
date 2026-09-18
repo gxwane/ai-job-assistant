@@ -1,13 +1,27 @@
 """
 数据库连接、会话管理与启动期自动模式迁移
 """
-import time
 import logging
+import time
+
 from sqlalchemy import (
-    create_engine, text, event, inspect,
-    Integer, SmallInteger, BigInteger, Boolean, Float, Numeric, String, Text, JSON, DateTime,
+    JSON,
+    BigInteger,
+    Boolean,
+    DateTime,
+    Float,
+    Integer,
+    Numeric,
+    SmallInteger,
+    String,
+    Text,
+    create_engine,
+    event,
+    inspect,
+    text,
 )
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.orm import declarative_base, sessionmaker
+
 from .config import DATABASE_URL
 
 logger = logging.getLogger(__name__)

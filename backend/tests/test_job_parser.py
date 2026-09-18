@@ -2,17 +2,16 @@
 岗位结构化解析引擎 单元测试
 """
 import sys
+
 sys.path.insert(0, '.')
 
 from app.services.job_parser import (
-    parse_job_text,
-    find_jd_start_index,
-    find_hr_block_start_index,
-    extract_hr_status,
+    clean_job_tags_for_matching,
     extract_hr_name,
-    extract_job_tags,
-    clean_jd_body,
+    extract_hr_status,
+    find_jd_start_index,
     normalize_raw_text,
+    parse_job_text,
 )
 
 
@@ -80,7 +79,7 @@ Python, PyTorch/TensorFlow, OpenCV, YOLO, CNN/Transformer模型
     else:
         print('PASS: company info removed from JD')
 
-    return errors
+    assert not errors, f"{len(errors)} assertions failed:\n" + "\n".join(errors)
 
 
 def test_case_2():
@@ -156,7 +155,7 @@ Python
         else:
             print(f'PASS: "{required}" present in JD')
 
-    return errors
+    assert not errors, f"{len(errors)} assertions failed:\n" + "\n".join(errors)
 
 
 def test_case_3():
@@ -224,7 +223,7 @@ app运营
     else:
         errors.append('FAIL: "岗位要求" not in jd')
 
-    return errors
+    assert not errors, f"{len(errors)} assertions failed:\n" + "\n".join(errors)
 
 
 def test_cjk_spaces():
@@ -234,7 +233,6 @@ def test_cjk_spaces():
     print("中文空格修复测试")
     print("=" * 60)
 
-    from app.services.job_parser import normalize_raw_text
     errors = []
 
     t1 = "截图 测试"
@@ -260,7 +258,7 @@ def test_cjk_spaces():
     else:
         errors.append(f'FAIL: got {repr(r3)}')
 
-    return errors
+    assert not errors, f"{len(errors)} assertions failed:\n" + "\n".join(errors)
 
 
 def test_case_4():
@@ -332,7 +330,7 @@ AI技术
         else:
             print(f'PASS: "{noise}" not in clean JD')
 
-    return errors
+    assert not errors, f"{len(errors)} assertions failed:\n" + "\n".join(errors)
 
 
 def test_clean_tags_for_matching():
@@ -342,7 +340,6 @@ def test_clean_tags_for_matching():
     print("clean_job_tags_for_matching 二次清洗测试")
     print("=" * 60)
 
-    from app.services.job_parser import clean_job_tags_for_matching
     errors = []
 
     dirty = ['Agent', 'AI相关经验', 'AI技术', '与AI', '卢女士', '刚刚活跃', '招聘经理']
@@ -362,7 +359,7 @@ def test_clean_tags_for_matching():
         else:
             errors.append(f'FAIL: "{bad}" still present')
 
-    return errors
+    assert not errors, f"{len(errors)} assertions failed:\n" + "\n".join(errors)
 
 
 def test_case_5():
@@ -404,7 +401,7 @@ ByteIntern：面向2027届毕业生（2026年9月-2027年8月期间毕业），�
         else:
             print(f'PASS: "{f}" not in job_tags')
 
-    return errors
+    assert not errors, f"{len(errors)} assertions failed:\n" + "\n".join(errors)
 
 
 def test_case_6():
@@ -441,7 +438,7 @@ def test_case_6():
         else:
             print(f'PASS: "{f}" not in job_tags')
 
-    return errors
+    assert not errors, f"{len(errors)} assertions failed:\n" + "\n".join(errors)
 
 
 def test_case_7():
@@ -505,7 +502,7 @@ def test_case_7():
     if 'C++' in tags:
         print('PASS: "C++" extracted from JD as skill keyword')
 
-    return errors
+    assert not errors, f"{len(errors)} assertions failed:\n" + "\n".join(errors)
 
 
 def test_case_7b():
@@ -514,8 +511,6 @@ def test_case_7b():
     print("=" * 60)
     print("案例7b: CJK单字断行修复")
     print("=" * 60)
-
-    from app.services.job_parser import normalize_raw_text
 
     raw = "1\u3001\u81f3\n\u5c11\u638c\u63e1Python/C++/Java/C#\u4e2d\u7684\u4e00\u95e8"
     fixed = normalize_raw_text(raw)
@@ -529,7 +524,7 @@ def test_case_7b():
     else:
         errors.append("FAIL: CJK break not repaired")
 
-    return errors
+    assert not errors, f"{len(errors)} assertions failed:\n" + "\n".join(errors)
 
 
 def test_unit_functions():
@@ -580,30 +575,9 @@ def test_unit_functions():
     else:
         errors.append(f'FAIL: extract_hr_name got {repr(name)}')
 
-    return errors
+    assert not errors, f"{len(errors)} assertions failed:\n" + "\n".join(errors)
 
 
 if __name__ == '__main__':
-    all_errors = []
-    all_errors.extend(test_case_1())
-    all_errors.extend(test_case_2())
-    all_errors.extend(test_case_3())
-    all_errors.extend(test_case_4())
-    all_errors.extend(test_case_5())
-    all_errors.extend(test_case_6())
-    all_errors.extend(test_case_7())
-    all_errors.extend(test_case_7b())
-    all_errors.extend(test_cjk_spaces())
-    all_errors.extend(test_clean_tags_for_matching())
-    all_errors.extend(test_unit_functions())
-
-    print()
-    print("=" * 60)
-    if all_errors:
-        print(f"FAILED: {len(all_errors)} errors")
-        for e in all_errors:
-            print(f"  - {e}")
-        sys.exit(1)
-    else:
-        print("ALL TESTS PASSED")
-        sys.exit(0)
+    import pytest
+    sys.exit(pytest.main([__file__]))

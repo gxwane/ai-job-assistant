@@ -6,8 +6,7 @@ Coverage targets:
 - close_truncated_json completes unclosed brackets and braces
 - generate_job_interview_questions logic
 """
-import pytest
-from app.services.interview_service import parse_interview_json, close_truncated_json
+from app.services.interview_service import close_truncated_json, parse_interview_json
 
 
 class TestJsonRepair:

@@ -13,7 +13,6 @@ import pytest
 
 from app.services.analysis_service import calculate_final_score
 
-
 # ── Helper ─────────────────────────────────────────────────────────────────────
 
 def make_llm_result(

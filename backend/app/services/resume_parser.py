@@ -2,9 +2,9 @@
 简历解析服务
 支持 PDF（pypdf）和 Word（python-docx）格式
 """
-import os
-from pypdf import PdfReader
 from docx import Document
+from pypdf import PdfReader
+
 from ..config import ALLOWED_EXTENSIONS
 
 
@@ -68,10 +68,10 @@ def _parse_docx(file_path: str) -> str:
 def _parse_txt(file_path: str) -> str:
     """解析纯文本文件"""
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             return f.read().strip()
     except UnicodeDecodeError:
-        with open(file_path, "r", encoding="gbk") as f:
+        with open(file_path, encoding="gbk") as f:
             return f.read().strip()
     except Exception as e:
         raise RuntimeError(f"文本文件解析失败：{str(e)}")

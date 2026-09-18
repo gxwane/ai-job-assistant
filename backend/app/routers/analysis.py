@@ -3,9 +3,10 @@
 """
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from ..database import get_db
-from ..models import Resume, AnalysisRecord
-from ..schemas import AnalysisRequest, AnalysisResponse, AnalysisResult
+from ..models import AnalysisRecord, Resume
+from ..schemas import AnalysisRequest, AnalysisResponse
 from ..services.analysis_service import analyze_job_match
 
 router = APIRouter(prefix="/api/analysis", tags=["岗位分析"])

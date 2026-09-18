@@ -5,18 +5,20 @@
 V2: 面试题生成改为异步模式（BackgroundTasks），立即返回 202 Accepted
 """
 import logging
+
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response, status
-from sqlalchemy.orm import Session
 from sqlalchemy import desc
+from sqlalchemy.orm import Session
+
 from ..database import get_db
 from ..models import JobRecord, Resume
 from ..schemas import (
-    JobRecordResponse,
-    JobRecordDetailResponse,
     BatchDeleteRequest,
-    DeleteResponse,
     BatchDeleteResponse,
     BatchUpdateJobStatusRequest,
+    DeleteResponse,
+    JobRecordDetailResponse,
+    JobRecordResponse,
     PaginatedResponse,
 )
 from ..services.interview_service import generate_job_interview_questions

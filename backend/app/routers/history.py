@@ -2,16 +2,17 @@
 历史记录 API 路由
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import desc
 from sqlalchemy.orm import Session
-from sqlalchemy import desc, func
+
 from ..database import get_db
 from ..models import AnalysisRecord, Resume
 from ..schemas import (
-    HistoryListItem,
-    HistoryDetailResponse,
     BatchDeleteRequest,
-    DeleteResponse,
     BatchDeleteResponse,
+    DeleteResponse,
+    HistoryDetailResponse,
+    HistoryListItem,
     PaginatedResponse,
 )
 
