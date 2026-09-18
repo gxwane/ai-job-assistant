@@ -80,6 +80,7 @@ class JobRecord(Base):
 
     # 状态流转
     status = Column(String(50), nullable=False, default="captured", comment="状态：captured/analyzed/recommended/communicated/ignored/interview")
+    analysis_status = Column(String(20), nullable=False, server_default="done", default="done", comment="AI分析异步状态：pending/running/done/failed")
     source = Column(String(50), nullable=False, default="boss_plugin", comment="来源：boss_plugin/manual")
     communicated_at = Column(DateTime, nullable=True, comment="沟通时间")
     created_at = Column(DateTime, server_default=func.now(), comment="创建时间")

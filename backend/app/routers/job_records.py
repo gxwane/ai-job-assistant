@@ -1,11 +1,13 @@
 """
 岗位记录管理 API 路由
 管理插件捕获的岗位记录（CRUD + 状态筛选 + 批量操作 + 面试题生成）
+
+V2: 面试题生成改为异步模式（BackgroundTasks），立即返回 202 Accepted
 """
 import logging
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
-from sqlalchemy import desc, func
+from sqlalchemy import desc
 from ..database import get_db
 from ..models import JobRecord, Resume
 from ..schemas import (
@@ -66,7 +68,7 @@ def list_job_records(
 
 @router.get("/{record_id}", response_model=JobRecordDetailResponse)
 def get_job_record_detail(record_id: int, db: Session = Depends(get_db)):
-    """获取单条岗位记录详情（含分析结果JSON）"""
+    """获取单条岗位记录详情（含分析结果JSON），可用于轮询 analysis_status"""
     record = db.query(JobRecord).filter(JobRecord.id == record_id).first()
     if not record:
         raise HTTPException(status_code=404, detail="岗位记录不存在")
@@ -161,50 +163,86 @@ def get_interview_questions(record_id: int, db: Session = Depends(get_db)):
     }
 
 
-@router.post("/{record_id}/generate-interview-questions")
-def generate_interview_questions(record_id: int, db: Session = Depends(get_db)):
+def _generate_interview_questions_task(record_id: int) -> None:
     """
-    为大模型生成30道面试高频问答题（按概率排序）
-    仅在收到面试后被调用，避免浪费大模型资源
+    【后台任务】生成面试题并写回数据库
+
+    使用独立 Session，避免路由层 Session 关闭后引发 DetachedInstanceError。
     """
-    record = db.query(JobRecord).filter(JobRecord.id == record_id).first()
-    if not record:
-        raise HTTPException(status_code=404, detail="岗位记录不存在")
+    from ..database import SessionLocal
 
-    # 已生成过则直接返回缓存
-    if record.interview_questions_json:
-        return {
-            "exists": True,
-            "cached": True,
-            "data": record.interview_questions_json,
-        }
-
-    # 获取简历内容
-    resume_text = ""
-    if record.resume_id:
-        resume = db.query(Resume).filter(Resume.id == record.resume_id).first()
-        if resume:
-            resume_text = resume.content
-
-    if not resume_text:
-        raise HTTPException(status_code=400, detail="该岗位未关联简历，无法生成面试题")
-
+    db: Session = SessionLocal()
     try:
+        record = db.query(JobRecord).filter(JobRecord.id == record_id).first()
+        if not record or record.interview_questions_json:
+            return  # 不存在或已生成，跳过
+
+        resume_text = ""
+        if record.resume_id:
+            resume = db.query(Resume).filter(Resume.id == record.resume_id).first()
+            if resume:
+                resume_text = resume.content
+
+        if not resume_text:
+            logger.warning(f"[BG-IQ] record_id={record_id} 简历不存在，跳过面试题生成")
+            return
+
         questions_data = generate_job_interview_questions(
             job_title=record.job_title,
             job_description=record.job_description,
             resume_content=resume_text,
         )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
-    # 保存到数据库
-    record.interview_questions_json = questions_data
-    db.commit()
+        record.interview_questions_json = questions_data
+        db.commit()
+        logger.info(f"[BG-IQ] record_id={record_id} 面试题生成完成")
+
+    except Exception as e:
+        logger.error(f"[BG-IQ] record_id={record_id} 生成失败: {e}", exc_info=True)
+    finally:
+        db.close()
+
+
+@router.post("/{record_id}/generate-interview-questions")
+def generate_interview_questions(
+    record_id: int,
+    background_tasks: BackgroundTasks,
+    response: Response,
+    db: Session = Depends(get_db),
+):
+    """
+    为大模型生成 30 道面试高频问答题（按概率排序）
+
+    异步模式：立即返回 202 Accepted，生成任务在后台执行。
+    若已有缓存直接返回 200 OK。
+    可通过 GET /{record_id}/interview-questions 轮询结果（exists=True 表示完成）。
+
+    仅在收到面试通知后被调用，避免浪费大模型资源。
+    """
+    record = db.query(JobRecord).filter(JobRecord.id == record_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="岗位记录不存在")
+
+    # 已生成过则直接返回缓存（同步，无需后台，默认 200 OK）
+    if record.interview_questions_json:
+        return {
+            "exists": True,
+            "cached": True,
+            "queued": False,
+            "data": record.interview_questions_json,
+        }
+
+    # 校验简历是否存在（快速失败，避免后台任务无效运行）
+    if not record.resume_id:
+        raise HTTPException(status_code=400, detail="该岗位未关联简历，无法生成面试题")
+
+    # 加入后台任务队列
+    background_tasks.add_task(_generate_interview_questions_task, record_id)
+    response.status_code = status.HTTP_202_ACCEPTED
 
     return {
-        "exists": True,
+        "exists": False,
         "cached": False,
-        "data": questions_data,
+        "queued": True,
+        "message": "面试题生成已加入队列，预计 15~30 秒后完成，请稍后刷新查询",
     }
-

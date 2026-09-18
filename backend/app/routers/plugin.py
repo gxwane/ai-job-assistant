@@ -1,36 +1,39 @@
 """
 浏览器插件 API 路由
 处理来自 Chrome 插件的岗位捕获和状态更新
+
+V2: 异步解耦 - 岗位捕获立即返回 202，AI 分析在后台执行
 """
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import JobRecord
 from ..schemas import (
-    PluginJobCaptureRequest,
-    PluginJobCaptureResponse,
+    AsyncTaskResponse,
     MarkCommunicatedRequest,
+    PluginJobCaptureRequest,
 )
-from ..services.plugin_service import capture_job_from_plugin
+from ..services.plugin_service import capture_job_from_plugin, run_analysis_background
 
 router = APIRouter(prefix="/api/plugin", tags=["浏览器插件"])
 
 
-@router.post("/job-capture", response_model=PluginJobCaptureResponse)
+@router.post("/job-capture", response_model=AsyncTaskResponse)
 def job_capture(
     request: PluginJobCaptureRequest,
+    background_tasks: BackgroundTasks,
+    response: Response,
     db: Session = Depends(get_db),
 ):
     """
-    插件发送岗位信息并触发匹配分析
+    插件发送岗位信息并异步触发 AI 匹配分析
 
     处理逻辑：
-    1. 校验必填字段
-    2. 如果 resume_id 为空 → 只保存岗位记录，不分析
-    3. 如果 resume_id 有值 → 调用分析服务，保存结果
-    4. 分数 >= 70 → status=recommended, should_recommend=true
-    5. 分数 < 70 或分析失败 → status=analyzed, should_recommend=false
+    1. 本地结构化解析 + 保存岗位记录（同步，立即完成）
+    2. 若有简历且需要分析，将 LLM 分析推入后台执行（BackgroundTasks）
+    3. 异步任务返回 202 Accepted + analysis_status="pending"，无须分析时返回 200 OK
+    4. 包含防御性兼容字段，并在 needs_new_bg_task 为真时才入队，防止并发覆盖
     """
     result = capture_job_from_plugin(
         db=db,
@@ -50,7 +53,29 @@ def job_capture(
     if not result["success"]:
         raise HTTPException(status_code=400, detail=result["message"])
 
-    return PluginJobCaptureResponse(**result)
+    # 仅在需要新后台任务时才加入 BackgroundTasks，防止重复并发运行
+    if result.get("needs_new_bg_task", False) and result["analysis_status"] == "pending":
+        background_tasks.add_task(run_analysis_background, result["job_record_id"])
+
+    # 异步任务动态设置 202 Accepted，同步直接完成的（如无简历）返回 200 OK
+    if result["analysis_status"] == "pending":
+        response.status_code = status.HTTP_202_ACCEPTED
+
+    return AsyncTaskResponse(
+        job_record_id=result["job_record_id"],
+        status=result["status"],
+        analysis_status=result["analysis_status"],
+        message=result["message"],
+        job_tags=result.get("job_tags", []),
+        hr_name=result.get("hr_name"),
+        hr_status=result.get("hr_status"),
+        hr_active_score=result.get("hr_active_score"),
+        match_score=result.get("match_score"),
+        score_level=result.get("score_level"),
+        recommendation=result.get("recommendation"),
+        should_recommend=result.get("should_recommend", False),
+        composite_score=result.get("composite_score"),
+    )
 
 
 @router.post("/job-records/{record_id}/communicated")

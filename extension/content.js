@@ -1514,6 +1514,38 @@
     return jdScore >= 6 || (jdScore >= 3 && text.length > 300);
   }
 
+  // ========== 异步任务状态轮询器 ==========
+  async function pollJobRecordAnalysis(recordId, timeoutMs = 60000, intervalMs = 1500, signal = null) {
+    const startTime = Date.now();
+    while (Date.now() - startTime < timeoutMs) {
+      if (signal && signal.aborted) {
+        throw new DOMException('Aborted', 'AbortError');
+      }
+      await new Promise(resolve => setTimeout(resolve, intervalMs));
+      try {
+        const res = await fetch(`${API_BASE}/job-records/${recordId}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          signal: signal || undefined,
+        });
+        if (!res.ok) continue;
+        const detail = await res.json();
+        if (detail.analysis_status === 'done') {
+          // 适配字段，供前端 renderResult 和扫描逻辑无缝消费
+          detail.job_record_id = detail.id;
+          detail.should_recommend = (detail.status === 'recommended' || (detail.match_score != null && detail.match_score >= 70));
+          return detail;
+        } else if (detail.analysis_status === 'failed') {
+          throw new Error('AI 后台分析失败，请检查服务日志');
+        }
+      } catch (err) {
+        if (err.name === 'AbortError') throw err;
+        console.warn('[AI求职助手] 轮询岗位分析状态出现非阻断异常:', err);
+      }
+    }
+    throw new Error('AI 分析轮询超时（60秒），可在后台历史记录中查看');
+  }
+
   // ========== 处理捕获请求 ==========
   async function handleCapture() {
     const btn = document.getElementById('ai-btn-capture');
@@ -1576,8 +1608,14 @@
         throw new Error(response.error || '请求失败');
       }
 
-      const data = response.data;
+      let data = response.data;
       currentJobRecordId = data.job_record_id;
+
+      // 若为异步任务（pending/running），在面板显示轮询状态并等待后台分析完成
+      if (data.analysis_status === 'pending' || data.analysis_status === 'running') {
+        resultDiv.innerHTML = '<p class="ai-loading">AI 深度分析中，正在轮询匹配评分...</p>';
+        data = await pollJobRecordAnalysis(data.job_record_id);
+      }
 
       // 渲染结果
       renderResult(data);
@@ -2333,7 +2371,11 @@
         const err = await response.json().catch(() => ({}));
         throw new Error(err.detail || `HTTP ${response.status}`);
       }
-      const data = await response.json();
+      let data = await response.json();
+      // 如果后端处于异步分析状态（pending 或 running），轮询直到分析完成
+      if (data.analysis_status === 'pending' || data.analysis_status === 'running') {
+        data = await pollJobRecordAnalysis(data.job_record_id, 60000, 1500, controller.signal);
+      }
       return data;
     } catch (e) {
       if (e.name === 'AbortError') {

@@ -214,6 +214,8 @@ class JobRecordResponse(BaseModel):
     hr_status: Optional[str] = None
     hr_active_score: Optional[int] = None
     composite_score: Optional[int] = None
+    # 异步分析状态
+    analysis_status: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -250,3 +252,24 @@ class OCRExtractResponse(BaseModel):
     strategy: str = ""
     detections: list = []
     processedImageBase64: str = ""
+
+
+# ==================== 异步任务响应 ====================
+
+class AsyncTaskResponse(BaseModel):
+    """异步任务立即响应（202 Accepted）"""
+    job_record_id: int = Field(..., description="岗位记录ID，用于后续轮询状态")
+    status: str = Field(..., description="岗位状态：captured")
+    analysis_status: str = Field(..., description="AI分析状态：pending/running/done/failed")
+    message: str = Field(..., description="提示信息")
+    # 快速解析结果（本地解析，无需等待LLM）
+    job_tags: list = Field(default_factory=list, description="岗位技能标签（本地解析）")
+    hr_name: Optional[str] = Field(None, description="HR姓名（本地解析）")
+    hr_status: Optional[str] = Field(None, description="HR活跃状态（本地解析）")
+    hr_active_score: Optional[int] = Field(None, description="HR活跃分值（本地解析）")
+    # 向后兼容与防御性兜底字段（异步分析完成前为 None/False）
+    match_score: Optional[int] = Field(None, description="匹配度评分")
+    score_level: Optional[str] = Field(None, description="评分等级")
+    recommendation: Optional[str] = Field(None, description="投递建议")
+    should_recommend: bool = Field(False, description="是否建议沟通")
+    composite_score: Optional[int] = Field(None, description="综合推荐指数")

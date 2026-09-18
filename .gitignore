@@ -35,6 +35,8 @@ Thumbs.db
 # Database
 *.db
 *.sqlite
+*.db-shm
+*.db-wal
 backend/*.db
 backend/*.sqlite
 

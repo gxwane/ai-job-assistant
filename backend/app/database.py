@@ -1,7 +1,7 @@
 """
 数据库连接和会话管理
 """
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, text, event
 from sqlalchemy.orm import sessionmaker, declarative_base
 from .config import DATABASE_URL
 
@@ -12,6 +12,15 @@ engine = create_engine(
     connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {},
     echo=False,  # 设置为 True 可以查看 SQL 日志
 )
+
+# SQLite 开启 WAL 模式提升并发读写能力
+if "sqlite" in DATABASE_URL:
+    @event.listens_for(engine, "connect")
+    def set_sqlite_pragma(dbapi_conn, connection_record):
+        cursor = dbapi_conn.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA synchronous=NORMAL")
+        cursor.close()
 
 # 创建会话工厂
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -84,11 +93,34 @@ def _migrate():
                     conn.execute(text(f"ALTER TABLE job_records ADD COLUMN {col_name} {col_type}"))
                     conn.commit()
                     print(f"[DB迁移] {col_name} 列添加完成")
+
+            # 异步分析状态字段（P2-T1）
+            if "analysis_status" not in jr_columns:
+                print("[DB迁移] 为 job_records 表添加 analysis_status 列")
+                conn.execute(text(
+                    "ALTER TABLE job_records ADD COLUMN analysis_status VARCHAR(20) NOT NULL DEFAULT 'done'"
+                ))
+                conn.commit()
+                print("[DB迁移] analysis_status 列添加完成")
     except Exception as e:
         print(f"[DB迁移] 注意: {e}")
+
+
+def _reset_dangling_tasks():
+    """重置服务异常退出导致的悬挂 running 状态为 pending"""
+    if "sqlite" not in DATABASE_URL:
+        return
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("UPDATE job_records SET analysis_status = 'pending' WHERE analysis_status = 'running'"))
+            conn.commit()
+    except Exception as e:
+        print(f"[DB] 重置悬挂任务跳过: {e}")
 
 
 def init_db():
     """初始化数据库，创建所有表"""
     Base.metadata.create_all(bind=engine)
     _migrate()
+    _reset_dangling_tasks()
+
