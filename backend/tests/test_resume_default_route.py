@@ -1,22 +1,13 @@
-import unittest
-
-from fastapi.testclient import TestClient
-
-from app.main import app
+"""
+Unit tests for default resume route with in-memory database isolation.
+"""
 
 
-class ResumeDefaultRouteTests(unittest.TestCase):
-    def test_default_resume_route_returns_success(self):
-        client = TestClient(app)
+def test_default_resume_route_returns_success(test_client):
+    response = test_client.get("/api/resume/default")
 
-        response = client.get("/api/resume/default")
-
-        self.assertEqual(response.status_code, 200, response.text)
-        body = response.json()
-        self.assertIn("has_resume", body)
-        self.assertIn("resume_id", body)
-        self.assertIn("filename", body)
-
-
-if __name__ == "__main__":
-    unittest.main()
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert "has_resume" in body
+    assert "resume_id" in body
+    assert "filename" in body
