@@ -1,36 +1,86 @@
-# AI 求职助手
+<div align="center">
 
-上传简历，AI 自动分析岗位匹配度，辅助判断是否值得投递。支持 **Web 端手动分析** + **浏览器插件自动筛选** + **数据统计中心** + **PDF 求职报告导出**。
+# 🤖 AI Job Assistant (智能求职助手)
+
+**全流程 AI 辅助求职利器 · 岗位智能匹配 · 浏览器无感抓取 · 面试真题冲刺 · 专业 PDF 战报生成**
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.11+-blue.svg?logo=python&logoColor=white" alt="Python"></a>
+  <a href="https://fastapi.tiangolo.com/"><img src="https://img.shields.io/badge/FastAPI-0.115+-009688.svg?logo=fastapi&logoColor=white" alt="FastAPI"></a>
+  <a href="https://vuejs.org/"><img src="https://img.shields.io/badge/Vue-3.4+-4FC08D.svg?logo=vuedotjs&logoColor=white" alt="Vue 3"></a>
+  <a href="extension/"><img src="https://img.shields.io/badge/Extension-Chrome%20%7C%20Edge%20MV3-orange.svg?logo=googlechrome&logoColor=white" alt="Browser Extension"></a>
+  <a href="https://docs.astral.sh/uv/"><img src="https://img.shields.io/badge/uv-Astral-de5fe9.svg?logo=uv&logoColor=white" alt="uv"></a>
+  <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-Welcome-brightgreen.svg" alt="PRs Welcome"></a>
+</p>
+
+[核心亮点](#-核心亮点) • [端到端工作流](#-系统全景与端到端工作流) • [快速开始](#-快速开始) • [浏览器插件](#-浏览器插件) • [匹配与封顶机制](#-评分机制与硬规则封顶) • [API 契约](#-系统核心交互与-api-契约) • [项目结构](#-项目结构) • [贡献指南](CONTRIBUTING.md) • [免责声明](docs/DISCLAIMER.md)
+
+</div>
 
 ---
 
-## 技术栈
+## 🌟 核心亮点
 
-| 层 | 技术 |
-|---|---|
-| 前端 | Vue 3 + Vite + Element Plus + Pinia + ECharts + Axios + Vue Router |
-| 后端 | FastAPI + Python 3.11+ + SQLAlchemy + SQLite |
-| 简历解析 | pypdf (PDF) + python-docx (Word) + TXT |
-| AI | DeepSeek API（也支持兼容 OpenAI 格式的其他大模型） |
-| OCR | EasyOCR（插件截图识别公司名/薪资） |
-| PDF 报告 | ReportLab + matplotlib（专业图表 + 中文字体） |
-| 插件 | Chrome/Edge Extension Manifest V3 |
+- 🎯 **5 级硬性防幻觉封顶引擎 (Anti-Hallucination Matching)**  
+  不盲目相信大语言模型的单方打分。后端内置硬性规则安全网，当岗位技术方向不匹配、核心技能命中率过低或 JD 过短时，强制触发硬性分数封顶，彻底根除 LLM 的“高分谄媚与幻觉”。
+- 🧩 **Boss 直聘浏览器协同插件 (Chrome / Edge MV3)**  
+  在招聘详情页注入右下角轻量化交互面板。支持单岗位即时分析与整页批量扫描；内置 **15~45 秒拟人化高斯时延随机抖动**、单日沟通硬上限与滑块风控熔断保护，最大限度保障平台账号安全。
+- 📊 **求职数据统计中心与专业 6 页 PDF 战报导出**  
+  内置 ECharts 仪表板，动态追踪求职转化漏斗、技能缺口排行榜与 HR 活跃分布。底层基于 ReportLab 与 Matplotlib 动态嵌入矢量图表与系统中文字体，一键生成结构严谨、排版专业的 6 页求职复盘分析报告。
+- 💡 **针对性 30 道定制面试真题冲刺**  
+  针对标记“收到面试”的岗位，结合求职者简历的具体项目经历与岗位 JD 深度定向生成 30 道高频面试题（包含考查意图与参考答案要点），助您精准备战。
+- ⚡ **现代化工程底座与零门槛体验**  
+  后端全面接入 **Astral `uv`** 现代包管理（秒级依赖同步），前端基于 Vue 3 + Vite；支持 **一键免配置 Mock 演示模式**（无 Key 亦可畅玩体验全流程）与 **Docker Compose 一键容器化交付**。
 
 ---
 
-## 快速开始
+## 🔄 系统全景与端到端工作流
+
+```mermaid
+flowchart TD
+    subgraph Browser ["浏览器端 (Chrome / Edge)"]
+        Boss["Boss 直聘岗位/搜索页"] --> Ext["AI 求职助手扩展 (MV3)"]
+        Ext -->|"DOM 结构化提取 (高斯拟人化时延)"| ExtCapture["捕获岗位与 JD 文本"]
+    end
+
+    subgraph Backend ["FastAPI 后端服务 (Port 8000)"]
+        ExtCapture -->|"POST /api/plugin/job-capture"| Dispatcher["API 控制调度层"]
+        LocalResume["本地简历 (PDF / Word / TXT)"] --> Parser["简历智能解析引擎"]
+        
+        Parser --> Service["匹配分析服务"]
+        Dispatcher --> Service
+        
+        Service -->|"结构化 Prompt"| LLM["大模型 (DeepSeek / OpenAI 兼容)"]
+        LLM -->|"分项评分指标"| HardRules["硬规则封顶引擎 (防幻觉)"]
+        HardRules --> DB[("SQLite 本地数据库")]
+        
+        DB --> ReportPipeline["PDF 报表渲染管线 (ReportLab + Matplotlib)"]
+        DB --> InterviewGen["针对性 30 道面试真题生成"]
+    end
+
+    subgraph WebUI ["Vue 3 交互控制台 (Port 5173)"]
+        DB --> View["求职漏斗看板与高匹配岗位推荐"]
+        ReportPipeline --> Export["一键导出 6 页专业求职战报"]
+    end
+```
+
+---
+
+## 🚀 快速开始
+
+> 💡 **零配置开箱提示**：  
+> 本项目默认开启 **高质量 Mock 模式**。无论是运行脚本还是 Docker，无需填写任何 API Key 即可启动并体验完整的 Web 界面、简历解析、岗位打分、图表看板与 PDF 报告导出！若需激活真实 AI，只需在 `backend/.env` 中配置 `DEEPSEEK_API_KEY`。
 
 ### 环境要求
 
-- Python 3.11+ (推荐安装 [Astral uv](https://docs.astral.sh/uv/))
-- Node.js 18+
-- Edge 或 Chrome 浏览器
+- **Python**：>= 3.11（推荐安装 [Astral uv](https://docs.astral.sh/uv/)）
+- **Node.js**：>= 18.0.0
+- **浏览器**：Google Chrome 或 Microsoft Edge
 
 ---
 
-### 启动方式选择
-
-#### 方式一：一键脚本极速启动（推荐日常开发）
+### 方式一：一键脚本极速启动（推荐日常使用）
 
 克隆项目后，无需在多个终端繁琐切换：
 
@@ -43,63 +93,40 @@
   chmod +x scripts/*.sh
   ./scripts/start_dev.sh
   ```
-> 脚本会自动检测端口冲突、自动从 `.env.example` 生成 `backend/.env`、自动启动后端 Uvicorn（端口 8000）与前端 Vite（端口 5173），并在退出时安全回收进程。
+> 脚本会自动检测端口、自动从 `.env.example` 初始化 `backend/.env`、自动并行拉起后端（端口 8000）与前端（端口 5173），并在退出时安全回收后台进程。
 
 ---
 
-#### 方式二：Docker Compose 容器化部署（开箱即用）
+### 方式二：Docker Compose 容器化部署（开箱即用）
 
-无需本地配置 Python 与 Node 环境，基于容器一键交付：
+无需在本地配置 Python 或 Node.js 开发环境，基于容器一键交付：
 
 ```bash
 # 启动前后端容器集群（后端已内置 Linux 中文字体支持）
 docker compose up -d
 ```
-- 前端 Web 访问：`http://localhost:5173`
+- 前端 Web 界面：`http://localhost:5173`
 - 后端 API 文档：`http://localhost:8000/docs`
 
 ---
 
-#### 方式三：手动分步启动（现代 Astral uv 模式）
+### 方式三：手动分步启动 (Astral uv / pip)
 
-##### 1. 后端服务
+#### 1. 后端服务
 
 ```bash
 cd backend
 
-# 配置环境变量（默认留空即使用 Mock 模式）
+# 初始化环境配置（默认使用 Mock 模式）
 cp .env.example .env
 
-# 使用 uv 极速同步依赖并启动
+# 使用 Astral uv 极速同步依赖并启动
 uv sync
 uv run uvicorn app.main:app --reload --port 8000
 ```
+*(使用传统 pip 用户可执行：`python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && uvicorn app.main:app --reload --port 8000`)*
 
-> #### 更换大模型 API 和密钥
->
-> 编辑 `backend/.env` 文件，替换以下配置：
->
-> ```env
-> # DeepSeek API（默认）
-> DEEPSEEK_API_KEY=sk-your-api-key-here
-> DEEPSEEK_BASE_URL=https://api.deepseek.com
-> ```
->
-> **切换到其他大模型？** 修改 `DEEPSEEK_BASE_URL` 为对应的 OpenAI 兼容 endpoint：
->
-> | 模型提供商 | BASE_URL 示例 |
-> |-----------|-------------|
-> | DeepSeek（默认） | `https://api.deepseek.com` |
-> | OpenAI | `https://api.openai.com/v1` |
-> | 硅基流动 | `https://api.siliconflow.cn/v1` |
-> | 阿里百炼 | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
-> | 其他兼容接口 | 填入对应地址即可 |
->
-> **没有 API Key？** 留空则自动使用 Mock 模式（返回高质量模拟数据，可用于功能演示）。
-
-验证：浏览器打开 `http://127.0.0.1:8000/docs` 可看到完整的 Swagger API 文档。
-
-##### 2. 前端服务
+#### 2. 前端服务
 
 ```bash
 cd frontend
@@ -108,355 +135,210 @@ npm install
 npm run dev
 ```
 
-浏览器打开 `http://localhost:5173` 即可进入 Web 操作界面。
+浏览器打开 `http://localhost:5173` 即可进入操作控制台。
 
 ---
 
-### 全栈质量门禁自动化验证 (Gauntlet)
+### 🔑 接入真实大模型 (可选)
 
-在提交代码或发布前，可运行自动化门禁套件一键验证全栈质量指标（Ruff 静态检查 + 94 项后端测试 + 39 项前端测试 + Vite 生产构建 + 扩展构建）：
+如需切换为真实大模型分析，请编辑 `backend/.env` 文件：
 
-- **Windows**：
-  ```cmd
-  scripts\verify_gauntlet.bat
-  ```
-  或在 PowerShell 中执行：
-  ```powershell
-  powershell -ExecutionPolicy Bypass -File scripts\verify_gauntlet.ps1
-  ```
-- **Linux / macOS / CI**：
-  ```bash
-  ./scripts/verify_gauntlet.sh
-  ```
-
----
-
-## 项目结构
-
-```
-ai-job-assistant/
-├── backend/
-│   ├── app/
-│   │   ├── main.py                  # FastAPI 入口，注册路由与 CORS 治理
-│   │   ├── config.py                # 配置管理（读取 .env）
-│   │   ├── database.py              # 数据库连接 + Schema 自动迁移
-│   │   ├── models.py                # 数据模型（Resume / AnalysisRecord / JobRecord）
-│   │   ├── schemas.py               # Pydantic 请求/响应契约模型
-│   │   ├── routers/                 # API 路由控制层 (轻量级)
-│   │   │   ├── resume.py            # 简历管理路由
-│   │   │   ├── analysis.py          # 手动 JD 分析路由
-│   │   │   ├── history.py           # 历史分析记录路由
-│   │   │   ├── plugin.py            # 浏览器插件通信路由
-│   │   │   ├── job_records.py       # 岗位记录管理路由
-│   │   │   ├── ocr.py               # OCR 识别路由
-│   │   │   └── statistics.py        # 数据统计路由
-│   │   ├── services/                # 领域业务服务（解耦下沉）
-│   │   │   ├── analysis_service.py  # 匹配分析 + 5级硬性评分封顶引擎
-│   │   │   ├── interview_service.py # 面试题构建与截断修复服务 ★
-│   │   │   ├── pdf_report_service.py# PDF 渲染与图表管线导出服务 ★
-│   │   │   ├── plugin_service.py    # 插件岗位捕获 + 自动匹配
-│   │   │   ├── llm_client.py        # 大模型客户端（支持流式/多厂商）
-│   │   │   ├── resume_parser.py     # 简历解析（PDF / Word表格 / TXT）
-│   │   │   ├── ocr_service.py       # OCR 服务（动态按需降级加载）
-│   │   │   └── job_parser.py        # Boss直聘文本结构化解析引擎
-│   │   └── prompts/                 # LLM Prompt 模板
-│   ├── tests/                       # 后端 pytest 单元测试套件 (94 项用例) ★
-│   ├── pyproject.toml               # Astral uv 现代依赖规范 ★
-│   ├── uv.lock                      # 依赖确定性跨平台锁定文件 ★
-│   ├── .env.example                 # 配置文件模板（安全脱敏）
-│   └── requirements.txt             # 传统 pip 兼容依赖清单
-├── frontend/
-│   ├── src/
-│   │   ├── components/              # 公共可复用 UI 组件库 ★
-│   │   │   ├── ScoreBadge.vue       # 匹配度彩色评分环徽章
-│   │   │   ├── HRStatusTag.vue      # HR 活跃状态标签
-│   │   │   └── SkillTagList.vue     # 技能与要点标签组
-│   │   ├── utils/                   # 通用工具模块库 ★
-│   │   │   ├── anti-ban.js          # 高斯时延与防封号熔断引擎
-│   │   │   ├── echarts-helper.js    # ECharts 响应式与自动销毁助手
-│   │   │   └── file-download.js     # 安全 Blob/URL 流式导出
-│   │   ├── views/                   # 业务视图页面 (已消除重复模板)
-│   │   ├── stores/analysis.js       # Pinia 状态管理（sessionStorage 持久化）
-│   │   ├── api/request.js           # API 请求封装 (25+ 接口)
-│   │   └── App.vue / main.js
-│   ├── package.json
-│   └── vite.config.js
-├── extension/                       # 浏览器插件 (Manifest V3)
-│   ├── content.js                   # 页面注入脚本 (防封安全调度/滑块熔断)
-│   ├── background.js                # 后台 Service Worker
-│   ├── popup.html / popup.js        # 插件配置弹出层
-│   └── manifest.json
-├── scripts/                         # 跨平台工程自动化脚本库 ★
-│   ├── start_dev.bat / .sh          # Windows / Linux 极速开发启动
-│   ├── verify_gauntlet.bat / .ps1   # Windows 全栈门禁自动化验证套件
-│   └── verify_gauntlet.sh           # Linux / CI 门禁自动化验证套件
-├── Dockerfile                       # 后端 Linux 容器镜像（含中文字体支持）
-├── docker-compose.yml               # 一键容器编排部署
-├── LICENSE                          # MIT 开源许可证
-└── README.md
+```env
+# 默认支持 DeepSeek 官方接口
+DEEPSEEK_API_KEY=sk-your-api-key-here
+DEEPSEEK_BASE_URL=https://api.deepseek.com
 ```
 
----
+**切换至其他大模型？** 修改 `DEEPSEEK_BASE_URL` 为对应的兼容端点即可：
 
-## Web 端功能
-
-### 页面导航
-
-| 页面 | 路由 | 功能 |
-|------|------|------|
-| 首页 | `/` | 项目入口，链接到各功能 |
-| 上传简历 | `/upload` | 上传 PDF/Word/TXT 简历 |
-| 简历管理 | `/resumes` | 列表 / 预览 / 下载 / 删除 / 批量删除 |
-| JD 分析 | `/analyze` | 选择简历 → 粘贴 JD → AI 评分 |
-| 分析结果 | `/result/:id` | 详细分析结果（技能对比 / 优劣势 / 面试题） |
-| 历史记录 | `/history` | 所有分析记录（分页 / 详情 / 删除） |
-| 插件岗位 | `/plugin-jobs` | 插件捕获的岗位记录（分页 / 筛选 / 状态流转 / 面试题） |
-| 面试题 | `/interview-questions/:id` | AI 生成的 30 道定制面试题 |
-| 数据统计 | `/dashboard` | 数据统计中心（图表仪表板 / PDF 导出） ★ |
-| 岗位详情 | `/job-detail/:id` | 单条岗位的 JD + AI 分析完整展示 ★ |
-
-### 使用流程
-
-1. **上传简历**：Web 端 `/upload` 上传 PDF/Word/TXT → 自动解析文本 → 保存到数据库（支持 MD5 去重）
-2. **手动分析**：`/analyze` 选择简历 + 粘贴岗位 JD → 点击分析 → AI 评分 + 建议
-3. **查看结果**：`/result/:id` 查看详细分析结果（分项评分 / 技能匹配 / 优劣势 / 风险提示 / 面试题）
-4. **历史管理**：`/history` 查看/删除历史分析记录
-5. **数据统计**：`/dashboard` 查看统计仪表板，支持导出 PDF 求职报告
+| 模型提供商 | BASE_URL 示例 |
+|-----------|-------------|
+| **DeepSeek (默认)** | `https://api.deepseek.com` |
+| **OpenAI** | `https://api.openai.com/v1` |
+| **硅基流动 (SiliconFlow)** | `https://api.siliconflow.cn/v1` |
+| **阿里百炼 (DashScope)** | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
+| **其他兼容端点** | 填入对应 `/v1` 或自定义基础地址即可 |
 
 ---
 
-## 浏览器插件
+## 🧩 浏览器插件
 
-### 功能
+### 核心功能
 
-| 功能 | 说明 |
-|------|------|
-| 单岗位分析 | 手动点击"发送到AI求职助手"分析当前岗位 |
-| 一键沟通 | 点击 Boss 页面"立即沟通"按钮 |
-| 岗位加载 | 模拟下滑加载更多岗位卡片 |
-| 本页自动筛选 | 逐个自动分析当前搜索结果页岗位 |
-| 推荐列表 | 高分岗位列表，支持"定位岗位"和自动沟通 |
-| 紧凑/展开模式 | 面板可缩小 / 拖拽移动 |
-| 扫描进度保存 | 暂停/停止后从上次位置继续 |
-| 面试题生成 | 收到面试后 AI 生成 30 道高频题 |
-| HR 活跃检测 | 自动识别 HR 活跃状态（在线 / 今日活跃等） |
-| 综合评分 | 匹配度 × 0.8 + HR活跃度 × 0.2 = 综合推荐指数 |
+| 功能模块 | 说明 |
+|---|---|
+| **单岗位深度分析** | 在 Boss 直聘详情页点击“发送到AI求职助手”，即时获取分项匹配结果 |
+| **本页批量自动筛选** | 逐个点击当前页岗位卡片，自动提取 JD、并发分析并生成推荐清单 |
+| **拟人化防封安全调度** | 处理每个岗位后引入 **15~45 秒高斯随机抖动时延**，模拟真实人类阅读行为 |
+| **滑块风控与单日硬熔断** | 检测到滑块/验证码立即暂停；单日自动沟通设置 **20 次硬上限**，防平台封号 |
+| **HR 活跃状态雷达** | 自动提取 HR 活跃标签（“刚刚活跃/今日活跃”等），计算综合推荐指数 |
+| **面试真题触发** | 岗位状态标记为“收到面试”后，自动联动 AI 生成定制冲刺真题 |
 
-### 安装
+### 快速安装
 
 1. 打开浏览器扩展管理页面：
    - Edge: `edge://extensions/`
    - Chrome: `chrome://extensions/`
-2. 开启 **"开发人员模式"**
-3. 点击 **"加载解压缩的扩展"**
-4. 选择 `extension/` 文件夹
+2. 开启右上角 **“开发人员模式” (Developer mode)**；
+3. 点击 **“加载解压缩的扩展” (Load unpacked)**；
+4. 选择项目中的 `extension/` 文件夹即可完成装载。
 
-### 使用
-
-1. 确保后端已启动（`http://127.0.0.1:8000`）
-2. 打开 Boss 直聘搜索结果页或岗位详情页
-3. 页面右下角出现 **AI求职助手** 面板
-4. 上传简历 → 自动同步到插件（也可在 Web 端上传）
-5. 单岗位：点击"发送到AI求职助手"
-6. 批量：设置参数 → 点击"开始自动筛选"
-7. 面板可拖拽标题栏移动，点击 `-` 缩小
-
-详见 `extension/README.md`。
+> 📖 插件详细使用指引与 DOM 选择器自定义维护，请参阅 [extension/README.md](extension/README.md)。
 
 ---
 
-## PDF 求职分析报告
+## 🎯 评分机制与硬规则封顶
 
-访问 `/dashboard` 页面，点击"导出求职报告"按钮，生成一份专业的求职分析报告 PDF。
-
-### 报告内容（6 页）
-
-| 页码 | 内容 | 说明 |
-|------|------|------|
-| 封面 | AI求职助手 · 智能求职分析报告 | 生成时间、简历名称、扫描岗位数 |
-| 求职总览 | 6 张卡片 | 扫描岗位 / 推荐 / 已沟通 / 平均匹配度 / 最高匹配度 / 简历数量 |
-| 图表页 | 匹配度分布 + 求职漏斗 | matplotlib 生成的柱状图 + 横向漏斗图 |
-| Top 10 | 高匹配且HR活跃岗位 | 按综合推荐指数排序，含 HR 活跃状态 |
-| 分析页 | 推荐方向 TOP5 + 技能缺口 TOP10 + HR分布 | AI 自动统计和可视化 |
-| AI 总结 | 总体评价 + 优劣势 + 建议 | 根据统计自动生成求职建议 |
-
-### 技术特性
-
-- **中文字体**：自动检测系统字体（SimHei / Microsoft YaHei / PingFang 等），保证中文正常显示
-- **图表**：matplotlib 生成柱状图、漏斗图，嵌入 PDF
-- **文件命名**：`AI求职报告_YYYYMMDD_HHMMSS.pdf`
-- **页眉页脚**：统一页眉（AI求职助手）+ 页脚（生成时间 + 页码）
-- **空数据兼容**：数据不足时显示"暂无足够数据"，不报错
-
----
-
-## 评分机制
-
-### 评分流程
+系统采用 **“LLM 结构化语义理解 + 领域规则硬性封顶”** 的双重评分架构：
 
 ```
-用户提交 → LLM 结构化分析（输出分项评分）
-         → 后端 calculate_final_score() 硬规则计算
-         → 返回最终评分 + 等级 + 建议
+求职者简历 + 岗位 JD 
+   │
+   ▼
+[LLM 语义提取与分项初评] ──► (技能 40分 + 经验 30分 + 学历 15分 + 潜力 15分)
+   │
+   ▼
+[硬性规则安全网过滤] ──► (检查技术方向、核心技能命中率、JD 长度)
+   │
+   ▼
+[综合推荐指数计算] ──► 匹配分 × 0.8 + HR活跃分 × 0.2
 ```
 
-### 分项评分（LLM 输出）
+### 硬性封顶规则 (消除 LLM 幻觉)
 
-| 评分项 | 分值范围 | 说明 |
-|--------|----------|------|
-| 技能评分 | 0-40 | 技术栈匹配程度 |
-| 项目经验 | 0-30 | 项目经验与岗位需求相关性 |
-| 学历背景 | 0-15 | 学历 / 专业 / 工作经历匹配度 |
-| 发展潜力 | 0-15 | 成长空间与岗位发展前景 |
+| 触发条件 | 违背逻辑 | 最终分数上限 |
+|---|---|:---:|
+| `category_match = false` | 岗位技术方向不匹配 (如前端投算法) | **35 分** (不推荐) |
+| `core_skill_hit_rate < 0.15` | 核心技术要点命中率极低 (< 15%) | **35 分** (不推荐) |
+| `matched_core_skills` 为空 | 未命中任何岗位核心技术栈 | **40 分** (勉强匹配) |
+| `core_skill_hit_rate < 0.30` | 核心技能命中率偏低 (< 30%) | **50 分** (部分匹配) |
+| 岗位文本总字数 < 80 字 | JD 描述过于简陋，无法有效评估 | **45 分** (部分匹配) |
 
-### 硬性封顶规则
+### 评级分段与投递建议
 
-| 规则 | 触发条件 | 分数上限 |
-|------|----------|----------|
-| 方向不匹配 | `category_match = false` | 35 |
-| 命中率极低 | `core_skill_hit_rate < 0.15` | 35 |
-| 命中率偏低 | `core_skill_hit_rate < 0.30` | 50 |
-| 无核心匹配 | `matched_core_skills` 为空 | 40 |
-| JD 过短 | 岗位描述不足 80 字 | 45 |
-
-### 评分等级
-
-| 分数区间 | 等级 | 建议 |
-|----------|------|------|
-| 85-100 | 高度匹配 | 强烈推荐投递 |
-| 70-84 | 良好匹配 | 建议投递 |
-| 50-69 | 部分匹配 | 可尝试投递 |
-| 30-49 | 勉强匹配 | 谨慎投递 |
-| 0-29 | 不推荐 | 不建议投递 |
+| 分数区间 | 匹配等级 | 投递建议 |
+|:---:|:---:|---|
+| **85 - 100** | 🌟 高度匹配 | 核心技能高度吻合，强烈建议立即沟通投递 |
+| **70 - 84** | 👍 良好匹配 | 满足主体要求，建议投递 |
+| **50 - 69** | ⚠️ 部分匹配 | 存在技能缺口或经验偏差，可选择性尝试 |
+| **30 - 49** | ⚡ 勉强匹配 | 核心要求匹配度低，谨慎投递 |
+| **0 - 29** | ❌ 不推荐 | 方向严重不符或核心要点未命中，不建议投递 |
 
 ---
 
-## 综合推荐指数
+## 📊 PDF 求职分析报告
 
-浏览器插件捕获的岗位会计算综合推荐指数：
+进入 Web 控制台 `/dashboard` 页面，点击“导出求职报告”，系统管线将基于 ReportLab 自动生成一份专业的 6 页矢量分析报告。
+
+| 页码 | 页面模块 | 核心内容 |
+|:---:|---|---|
+| **P1** | **封面** | 报告全称、求职者简历标识、扫描总数、生成时间 |
+| **P2** | **求职总览** | 扫描岗位量、推荐岗位量、已沟通数、平均匹配度等 6 维关键指标卡 |
+| **P3** | **图表页** | 匹配度分布柱状图 + 求职转化漏斗图 (Matplotlib 高清矢量图表) |
+| **P4** | **Top 10 推荐** | 按“综合推荐指数”降序排列的高匹配且 HR 活跃岗位清单 |
+| **P5** | **技能与市场洞察** | 技能缺口 TOP 10、推荐岗位方向分布、HR 活跃时段分布 |
+| **P6** | **AI 总结与策略建议** | 基于全盘投递表现生成的针对性求职改进策略与备战建议 |
+
+---
+
+## 🔌 系统核心交互与 API 契约
+
+本项目前后端及浏览器扩展之间采用标准的 RESTful JSON 协议进行通信。系统全面接入自动化交互式文档引擎：
+
+- **Swagger UI 交互式文档**：启动后端后访问 [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)（支持在线发起请求、查看请求体 Schema 与响应结构）
+- **ReDoc 契约文档**：访问 [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
+
+### 核心业务接口模块划分
+
+| 业务模块 | 路由前缀 | 核心能力说明 |
+|---|---|---|
+| **简历服务** | `/api/resume` | 支持 PDF/Word/TXT 简历上传解析、MD5 内容判重与历史管理 |
+| **匹配分析** | `/api/analysis` | 手动 JD 录入匹配、大模型要素提取与硬规则封顶打分 |
+| **插件协同** | `/api/plugin` | 浏览器插件岗位捕获、即时匹配通信与投递/沟通状态流转 |
+| **求职记录** | `/api/job-records` | 岗位生命周期管理、筛选漏斗聚合与定制 30 道面试题生成 |
+| **统计与报表** | `/api/statistics` | 全盘求职数据大屏、HR 活跃分布与 6 页专业 PDF 报告管线导出 |
+| **智能 OCR** | `/api/ocr` | 招聘截图局部文字按需提取 (可选依赖) |
+
+---
+
+## 📂 项目结构
 
 ```
-composite_score = match_score × 0.8 + hr_active_score × 0.2
+ai-job-assistant/
+├── backend/                         # FastAPI 后端服务
+│   ├── app/
+│   │   ├── main.py                  # 应用入口、CORS 治理与中间件
+│   │   ├── config.py                # 环境变量与应用配置
+│   │   ├── database.py              # SQLite 连接与 Schema 自动迁移
+│   │   ├── models.py                # SQLAlchemy ORM 数据持久化模型
+│   │   ├── schemas.py               # Pydantic 请求/响应契约模型
+│   │   ├── routers/                 # RESTful API 控制路由层
+│   │   ├── services/                # 核心业务逻辑服务层
+│   │   │   ├── analysis_service.py  # 岗位匹配度分析与 5 级硬规则封顶引擎
+│   │   │   ├── interview_service.py # 定制面试题生成与容错服务
+│   │   │   ├── pdf_report_service.py# 6 页专业 PDF 报告渲染与图表管线
+│   │   │   ├── plugin_service.py    # 插件岗位捕获与异步调度
+│   │   │   ├── llm_client.py        # 大模型统一客户端 (支持流式/多供应商)
+│   │   │   ├── resume_parser.py     # 多格式简历解析器 (PDF / Word表格 / TXT)
+│   │   │   ├── ocr_service.py       # 截图 OCR 识别服务 (按需动态加载)
+│   │   │   └── job_parser.py        # 招聘页面文本结构化提取器
+│   │   └── prompts/                 # 结构化 Prompt 提示词模板
+│   ├── tests/                       # 后端 pytest 自动化测试套件
+│   ├── pyproject.toml               # 项目配置与 Astral uv 依赖声明
+│   ├── uv.lock                      # 跨平台依赖精确锁定文件
+│   └── .env.example                 # 环境变量配置模板
+├── frontend/                        # Vue 3 前端工程
+│   ├── src/
+│   │   ├── components/              # 公共可复用 UI 组件 (评分环/状态标签等)
+│   │   ├── utils/                   # 通用工具模块 (防封号时延/导出/ECharts助手)
+│   │   ├── views/                   # 核心业务页面 (看板/匹配/历史/岗位)
+│   │   ├── stores/                  # Pinia 状态管理
+│   │   └── api/                     # 后端 API 请求客户端封装
+│   ├── package.json                 # 前端依赖配置
+│   └── vite.config.js               # Vite 生产与开发构建配置
+├── extension/                       # 浏览器扩展 (Manifest V3)
+│   ├── content.js                   # 页面注入脚本 (拟人化时延与防封号熔断)
+│   ├── background.js                # 扩展后台 Service Worker
+│   └── popup.html / popup.js        # 扩展配置弹窗
+├── scripts/                         # 跨平台工程自动化脚本
+│   ├── start_dev.bat / .sh          # Windows / Linux 极速一键开发启动
+│   └── verify_gauntlet.bat / .sh    # 全栈自动化质量门禁套件
+├── docs/                            # 项目文档与资源说明
+├── Dockerfile                       # 后端 Linux 容器镜像 (内置中文字体)
+├── docker-compose.yml               # 一键容器编排部署文件
+├── CONTRIBUTING.md                  # 社区贡献与开发规范指南
+├── LICENSE                          # MIT 开源许可证
+└── README.md                        # 项目主说明文档
 ```
 
-其中 `hr_active_score` 根据 HR 活跃状态映射为数值：
+---
 
-| HR 状态 | 活跃分 |
-|---------|--------|
-| 在线 | 100 |
-| 刚刚活跃 / 今日活跃 | 90 |
-| 3日内活跃 / 本周活跃 | 70 |
-| 两周内活跃 / 本月活跃 | 50 |
-| 3月内活跃 | 30 |
-| 半年前活跃 | 10 |
-| 未知 | 0 |
+## 🔒 隐私与本地数据安全
+
+1. **纯本地化存储**：所有解析的简历文本、岗位数据与匹配历史仅保存在本地 SQLite 数据库（`backend/ai_job_assistant.db`）与本地目录（`backend/uploads/`），不上传至任何第三方云端；
+2. **凭据安全**：API Key 仅存放于本地 `backend/.env`，已被 `.gitignore` 严格忽略，杜绝凭据泄漏；
+3. **安全隔离**：浏览器插件通信严格限制在 `http://127.0.0.1:8000` 本地回环接口。
 
 ---
 
-## Mock 模式
+## 🤝 参与贡献与质量门禁
 
-未配置 API Key 时，系统自动使用 Mock 模式返回模拟数据，方便演示。
+我们非常欢迎社区参与贡献！无论是提交 Issue、修复缺陷还是增加新功能。
 
-启用真实 AI：编辑 `backend/.env`
+为了保证代码库的一致性与稳定性，提交代码前请确保通过本地质量门禁套件验证（包含 Ruff 静态检查、全栈自动化单元测试与前后端生产构建）。
 
-```env
-DEEPSEEK_API_KEY=sk-your-api-key
-```
+👉 详细的本地开发搭建、质量门禁使用与提交规范，请参阅 [CONTRIBUTING.md#5-质量门禁与本地验证-gauntlet](CONTRIBUTING.md#5-质量门禁与本地验证-gauntlet)。
 
 ---
 
-## API 文档
+## ⚖️ 免责声明 (Disclaimer)
 
-启动后端后访问 `http://127.0.0.1:8000/docs`
+本项目仅供个人求职辅助、学习研究与技术交流使用。使用者在利用本工具与招聘平台交互时，应严格遵守相关平台的服务协议与法律法规。严禁将本项目用于商业爬取、接口探测、批量营销骚扰或任何破坏网站正当运营秩序的行为。因使用本工具可能引发的第三方平台限制、账号受损或其它任何风险，均由使用者自行承担，与本项目开发者无关。
 
-### 简历接口
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/api/resume/upload` | 上传简历文件（MD5 去重） |
-| GET | `/api/resume/list` | 简历列表（分页） |
-| GET | `/api/resume/{id}` | 简历详情 |
-| GET | `/api/resume/{id}/file` | 下载简历原件 |
-| GET | `/api/resume/default` | 获取最新简历（默认匹配用） |
-| DELETE | `/api/resume/{id}` | 删除简历（级联删除关联记录） |
-| POST | `/api/resume/batch-delete` | 批量删除 |
-
-### 分析接口
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/api/analysis/analyze` | 分析岗位匹配度 |
-
-### 历史记录
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/history/list` | 历史记录列表（分页） |
-| GET | `/api/history/{id}` | 历史记录详情 |
-| DELETE | `/api/history/{id}` | 删除单条 |
-| POST | `/api/history/batch-delete` | 批量删除 |
-
-### 插件接口
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/api/plugin/job-capture` | 插件发送岗位并触发分析 |
-| POST | `/api/plugin/job-records/{id}/communicated` | 标记已沟通 |
-| POST | `/api/plugin/job-records/{id}/ignored` | 标记已忽略 |
-| POST | `/api/plugin/job-records/{id}/interview` | 标记收到面试 |
-
-### 岗位记录
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/job-records` | 岗位记录列表（分页 / 筛选） |
-| GET | `/api/job-records/{id}` | 岗位详情 |
-| DELETE | `/api/job-records/{id}` | 删除单条 |
-| POST | `/api/job-records/batch-delete` | 批量删除 |
-| POST | `/api/job-records/batch-status` | 批量更新状态 |
-| GET | `/api/job-records/{id}/interview-questions` | 获取面试题 |
-| POST | `/api/job-records/{id}/generate-interview-questions` | AI 生成 30 道面试题 |
-
-### OCR 接口
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/api/ocr/extract-field` | 截图 OCR 识别公司名 / 薪资 |
-
-### 统计接口 ★
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/statistics/overview` | 统计总览（简历数 / 岗位数 / 平均分等） |
-| GET | `/api/statistics/score-distribution` | 匹配度分布（5 个区间） |
-| GET | `/api/statistics/job-funnel` | 求职漏斗（扫描 → 推荐 → 沟通 → 面试 → Offer） |
-| GET | `/api/statistics/hr-status-distribution` | HR 活跃状态分布 |
-| GET | `/api/statistics/recent-recommended` | 最近推荐岗位 |
-| GET | `/api/statistics/report/pdf` | 导出 PDF 求职分析报告 |
+> 完整法律与反爬合规声明详见：[docs/DISCLAIMER.md](docs/DISCLAIMER.md)。
 
 ---
 
-## 注意事项
-
-1. Boss 直聘页面 DOM 可能变化，如信息提取失败需更新 `extension/src/config.js` 中的 SELECTORS 并重新编译 (`npm run build:extension`)
-2. 插件默认不自动翻页，只扫描当前页
-3. 自动沟通**默认关闭**，需用户主动开启
-4. 所有数据仅存储在本地 SQLite 数据库和本地文件系统
-5. API Key 存储在 `backend/.env`，不会被提交到 Git（已在 .gitignore）
-6. 数据库文件：`backend/ai_job_assistant.db`
-7. 上传文件：`backend/uploads/`
-8. PDF 报告生成依赖 matplotlib 中文字体，Windows 系统默认支持 SimHei / Microsoft YaHei
-
----
-
-## 免责声明 (Disclaimer)
-
-本项目仅供个人求职辅助、学习研究与技术交流使用。使用者在利用本工具与招聘网站交互时，应严格遵守相关服务协议与法律法规。严禁使用本项目进行任何恶意攻击、批量骚扰、滥用接口或侵犯他人合法权益的行为。因使用本工具可能引发的第三方平台限制、账号受损或其它任何风险，均由使用者自行承担，与本项目开发者无关。
-
-> 完整版法律与反爬合规声明详见：[docs/DISCLAIMER.md](docs/DISCLAIMER.md)。
-
----
-
-## 开源协议 (License)
+## 📄 开源协议 (License)
 
 本项目采用 [MIT License](LICENSE) 开源许可证。
