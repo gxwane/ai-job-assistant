@@ -28,14 +28,26 @@ _CN_FONT_BOLD = None
 def _find_cn_font():
     """扫描系统中文字体"""
     candidates = [
+        # Windows
         ("C:/Windows/Fonts/simhei.ttf", "SimHei"),
         ("C:/Windows/Fonts/msyh.ttc", "Microsoft YaHei"),
         ("C:/Windows/Fonts/msyhbd.ttc", "Microsoft YaHei"),
         ("C:/Windows/Fonts/simsun.ttc", "SimSun"),
-        ("/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc", "WenQuanYi"),
+        # Debian / Ubuntu (fonts-wqy-zenhei, fonts-wqy-microhei)
+        ("/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc", "WenQuanYi Zen Hei"),
+        ("/usr/share/fonts/truetype/wqy/wqy-microhei.ttc", "WenQuanYi Micro Hei"),
+        # CentOS / Fedora / RHEL
+        ("/usr/share/fonts/wqy-zenhei/wqy-zenhei.ttc", "WenQuanYi Zen Hei"),
+        ("/usr/share/fonts/wqy-microhei/wqy-microhei.ttc", "WenQuanYi Micro Hei"),
+        # Noto & Droid CJK
         ("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc", "Noto Sans CJK"),
+        ("/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc", "Noto Sans CJK"),
+        ("/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc", "Noto Sans CJK"),
+        ("/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf", "Droid Sans Fallback"),
+        # macOS
         ("/System/Library/Fonts/PingFang.ttc", "PingFang"),
         ("/System/Library/Fonts/Hiragino Sans GB.ttc", "Hiragino Sans GB"),
+        ("/Library/Fonts/Songti.ttc", "Songti"),
     ]
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
@@ -245,9 +257,11 @@ def export_pdf_report(db: Session = Depends(get_db)):
         c.setFillColor(color or GRAY)
         if has_cn:
             c.setFont(font_name, size)
+            c.drawString(x, y, text)
         else:
             c.setFont("Helvetica-Bold" if bold else "Helvetica", size)
-        c.drawString(x, y, text)
+            safe_text = str(text).encode("ascii", "replace").decode("ascii")
+            c.drawString(x, y, safe_text)
 
     def draw_header_footer(page_num):
         """页眉页脚"""

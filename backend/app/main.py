@@ -46,11 +46,11 @@ def startup_event():
     init_db()
     if MOCK_MODE:
         print("=" * 50)
-        print("⚠️  当前运行在 MOCK 模式（未配置 DeepSeek API Key）")
-        print("   如需使用真实 AI 分析，请在 .env 文件中配置 DEEPSEEK_API_KEY")
+        print("[!] 当前运行在 MOCK 模式（未配置 DeepSeek API Key）")
+        print("    如需使用真实 AI 分析，请在 .env 文件中配置 DEEPSEEK_API_KEY")
         print("=" * 50)
     else:
-        print("✅ 已配置 DeepSeek API，将使用真实 AI 分析")
+        print("[OK] 已配置 DeepSeek API，将使用真实 AI 分析")
 
 
 @app.get("/")
