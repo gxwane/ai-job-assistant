@@ -22,36 +22,57 @@
 
 ### 环境要求
 
-- Python 3.10+
+- Python 3.10+ (推荐安装 [Astral uv](https://docs.astral.sh/uv/))
 - Node.js 18+
 - Edge 或 Chrome 浏览器
 
-### 1. 克隆项目
+---
+
+### 启动方式选择
+
+#### 方式一：一键脚本极速启动（推荐日常开发）
+
+克隆项目后，无需在多个终端繁琐切换：
+
+- **Windows 用户**：双击运行或在终端执行：
+  ```cmd
+  scripts\start_dev.bat
+  ```
+- **Linux / macOS / WSL 用户**：
+  ```bash
+  chmod +x scripts/*.sh
+  ./scripts/start_dev.sh
+  ```
+> 脚本会自动检测端口冲突、自动从 `.env.example` 生成 `backend/.env`、自动启动后端 Uvicorn（端口 8000）与前端 Vite（端口 5173），并在退出时安全回收进程。
+
+---
+
+#### 方式二：Docker Compose 容器化部署（开箱即用）
+
+无需本地配置 Python 与 Node 环境，基于容器一键交付：
 
 ```bash
-git clone <repo-url>
-cd ai-job-assistant
+# 启动前后端容器集群（后端已内置 Linux 中文字体支持）
+docker compose up -d
 ```
+- 前端 Web 访问：`http://localhost:5173`
+- 后端 API 文档：`http://localhost:8000/docs`
 
-### 2. 后端
+---
+
+#### 方式三：手动分步启动（现代 Astral uv 模式）
+
+##### 1. 后端服务
 
 ```bash
 cd backend
 
-# 创建虚拟环境
-python -m venv venv
+# 配置环境变量（默认留空即使用 Mock 模式）
+cp .env.example .env
 
-# 激活虚拟环境
-# Windows:
-venv\Scripts\activate
-# Mac/Linux:
-source venv/bin/activate
-
-# 安装依赖
-pip install -r requirements.txt
-
-# 配置 API Key
-copy .env.example .env
+# 使用 uv 极速同步依赖并启动
+uv sync
+uv run uvicorn app.main:app --reload --port 8000
 ```
 
 > #### 更换大模型 API 和密钥
@@ -74,24 +95,11 @@ copy .env.example .env
 > | 阿里百炼 | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
 > | 其他兼容接口 | 填入对应地址即可 |
 >
-> **没有 API Key？** 留空则自动使用 Mock 模式（返回模拟数据，可用于演示）。
->
-> 注意：切换模型后，`backend/app/services/llm_client.py:46` 中的 `"model": "deepseek-chat"` 也需改为对应模型名。
+> **没有 API Key？** 留空则自动使用 Mock 模式（返回高质量模拟数据，可用于功能演示）。
 
-```bash
-# 启动后端
-uvicorn app.main:app --reload --port 8000
-```
+验证：浏览器打开 `http://127.0.0.1:8000/docs` 可看到完整的 Swagger API 文档。
 
-启动成功标志：
-```
-✅ 已配置 DeepSeek API，将使用真实 AI 分析
-INFO:  Application startup complete.
-```
-
-验证：浏览器打开 `http://127.0.0.1:8000/docs` 可看到 Swagger API 文档。
-
-### 3. 前端
+##### 2. 前端服务
 
 ```bash
 cd frontend
@@ -100,7 +108,22 @@ npm install
 npm run dev
 ```
 
-浏览器打开 `http://localhost:5173`
+浏览器打开 `http://localhost:5173` 即可进入 Web 操作界面。
+
+---
+
+### 全栈质量门禁自动化验证 (Gauntlet)
+
+在提交代码或发布前，可运行自动化门禁套件一键验证全栈质量指标（77 项后端测试 + 39 项前端测试 + Vite 生产打包构建）：
+
+- **Windows**：
+  ```cmd
+  scripts\verify_gauntlet.bat
+  ```
+- **Linux / macOS / CI**：
+  ```bash
+  ./scripts/verify_gauntlet.sh
+  ```
 
 ---
 
@@ -110,59 +133,63 @@ npm run dev
 ai-job-assistant/
 ├── backend/
 │   ├── app/
-│   │   ├── main.py                  # FastAPI 入口，注册路由
+│   │   ├── main.py                  # FastAPI 入口，注册路由与 CORS 治理
 │   │   ├── config.py                # 配置管理（读取 .env）
 │   │   ├── database.py              # 数据库连接 + Schema 自动迁移
 │   │   ├── models.py                # 数据模型（Resume / AnalysisRecord / JobRecord）
-│   │   ├── schemas.py               # Pydantic 请求/响应模型
-│   │   ├── routers/                 # API 路由
-│   │   │   ├── resume.py            # 简历上传/列表/预览/删除/下载
-│   │   │   ├── analysis.py          # 手动 JD 分析
-│   │   │   ├── history.py           # 历史分析记录
-│   │   │   ├── plugin.py            # 浏览器插件接口（岗位捕获/状态更新）
-│   │   │   ├── job_records.py       # 岗位记录管理（含面试题生成）
-│   │   │   ├── ocr.py               # OCR 截图识别
-│   │   │   └── statistics.py        # 数据统计 + PDF 求职报告导出
-│   │   ├── services/                # 业务服务
-│   │   │   ├── analysis_service.py  # 匹配分析 + 评分引擎
+│   │   ├── schemas.py               # Pydantic 请求/响应契约模型
+│   │   ├── routers/                 # API 路由控制层 (轻量级)
+│   │   │   ├── resume.py            # 简历管理路由
+│   │   │   ├── analysis.py          # 手动 JD 分析路由
+│   │   │   ├── history.py           # 历史分析记录路由
+│   │   │   ├── plugin.py            # 浏览器插件通信路由
+│   │   │   ├── job_records.py       # 岗位记录管理路由
+│   │   │   ├── ocr.py               # OCR 识别路由
+│   │   │   └── statistics.py        # 数据统计路由
+│   │   ├── services/                # 领域业务服务（解耦下沉）
+│   │   │   ├── analysis_service.py  # 匹配分析 + 5级硬性评分封顶引擎
+│   │   │   ├── interview_service.py # 面试题构建与截断修复服务 ★
+│   │   │   ├── pdf_report_service.py# PDF 渲染与图表管线导出服务 ★
 │   │   │   ├── plugin_service.py    # 插件岗位捕获 + 自动匹配
-│   │   │   ├── llm_client.py        # 大模型客户端（支持流式）
-│   │   │   ├── resume_parser.py     # 简历解析（PDF / Word / TXT）
-│   │   │   ├── ocr_service.py       # OCR 识别服务（EasyOCR + PaddleOCR）
-│   │   │   └── job_parser.py        # 岗位文本结构化解析（Boss直聘） ★
+│   │   │   ├── llm_client.py        # 大模型客户端（支持流式/多厂商）
+│   │   │   ├── resume_parser.py     # 简历解析（PDF / Word表格 / TXT）
+│   │   │   ├── ocr_service.py       # OCR 服务（动态按需降级加载）
+│   │   │   └── job_parser.py        # Boss直聘文本结构化解析引擎
 │   │   └── prompts/                 # LLM Prompt 模板
-│   │       └── job_match_prompt.py  # 岗位匹配 + 面试题生成 prompt
-│   ├── uploads/                     # 简历文件存储
-│   ├── .env                         # 环境配置（API Key 等）
-│   ├── .env.example                 # 配置文件模板
-│   └── requirements.txt             # Python 依赖
+│   ├── tests/                       # 后端 pytest 单元测试套件 (77 项用例) ★
+│   ├── pyproject.toml               # Astral uv 现代依赖规范 ★
+│   ├── uv.lock                      # 依赖确定性跨平台锁定文件 ★
+│   ├── .env.example                 # 配置文件模板（安全脱敏）
+│   └── requirements.txt             # 传统 pip 兼容依赖清单
 ├── frontend/
 │   ├── src/
-│   │   ├── App.vue                  # 根组件 + 导航栏
-│   │   ├── main.js                  # Vue 应用入口
-│   │   ├── views/                   # 页面组件
-│   │   │   ├── Home.vue            # 首页
-│   │   │   ├── ResumeUpload.vue    # 简历上传
-│   │   │   ├── ResumeManager.vue   # 简历管理（列表/预览/下载/删除）
-│   │   │   ├── JobAnalyze.vue      # 手动 JD 分析
-│   │   │   ├── Result.vue          # 分析结果详情
-│   │   │   ├── History.vue         # 历史分析记录（分页）
-│   │   │   ├── PluginJobs.vue      # 插件岗位记录（分页/状态管理）
-│   │   │   ├── Dashboard.vue       # 数据统计中心（图表仪表板） ★
-│   │   │   ├── JobDetail.vue       # 岗位分析详情页 ★
-│   │   │   └── InterviewQuestions.vue # 面试高频问答题
-│   │   ├── router/index.js         # 路由配置
-│   │   ├── stores/analysis.js      # Pinia 状态管理
-│   │   └── api/request.js          # API 请求封装（25+ 接口）
-│   ├── index.html
-│   ├── vite.config.js
-│   └── package.json
-├── extension/                       # 浏览器插件
-│   ├── manifest.json                # 插件清单（Manifest V3）
-│   ├── content.js                   # 内容脚本（面板 / 自动筛选 / 岗位提取 / 沟通）
-│   ├── background.js                # Service Worker（API 调用 / 截图 / OCR）
-│   └── README.md                    # 插件使用文档
-└── README.md                        # 本文件
+│   │   ├── components/              # 公共可复用 UI 组件库 ★
+│   │   │   ├── ScoreBadge.vue       # 匹配度彩色评分环徽章
+│   │   │   ├── HRStatusTag.vue      # HR 活跃状态标签
+│   │   │   └── SkillTagList.vue     # 技能与要点标签组
+│   │   ├── utils/                   # 通用工具模块库 ★
+│   │   │   ├── anti-ban.js          # 高斯时延与防封号熔断引擎
+│   │   │   ├── echarts-helper.js    # ECharts 响应式与自动销毁助手
+│   │   │   └── file-download.js     # 安全 Blob/URL 流式导出
+│   │   ├── views/                   # 业务视图页面 (已消除重复模板)
+│   │   ├── stores/analysis.js       # Pinia 状态管理（sessionStorage 持久化）
+│   │   ├── api/request.js           # API 请求封装 (25+ 接口)
+│   │   └── App.vue / main.js
+│   ├── package.json
+│   └── vite.config.js
+├── extension/                       # 浏览器插件 (Manifest V3)
+│   ├── content.js                   # 页面注入脚本 (防封安全调度/滑块熔断)
+│   ├── background.js                # 后台 Service Worker
+│   ├── popup.html / popup.js        # 插件配置弹出层
+│   └── manifest.json
+├── scripts/                         # 跨平台工程自动化脚本库 ★
+│   ├── start_dev.bat / .sh          # Windows / Linux 极速开发启动
+│   ├── verify_gauntlet.bat / .ps1   # Windows 全栈门禁自动化验证套件
+│   └── verify_gauntlet.sh           # Linux / CI 门禁自动化验证套件
+├── Dockerfile                       # 后端 Linux 容器镜像（含中文字体支持）
+├── docker-compose.yml               # 一键容器编排部署
+├── LICENSE                          # MIT 开源许可证
+└── README.md
 ```
 
 ---
