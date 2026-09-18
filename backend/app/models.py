@@ -1,7 +1,7 @@
 """
 数据库模型定义
 """
-from sqlalchemy import JSON, Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -89,3 +89,18 @@ class JobRecord(Base):
 
     # 关联简历
     resume = relationship("Resume", back_populates="job_records")
+
+
+class SystemSetting(Base):
+    """系统配置表（单例记录，ID 固定为 1）"""
+    __tablename__ = "system_settings"
+
+    id = Column(Integer, primary_key=True, default=1)
+    provider = Column(String(50), nullable=False, default="deepseek", comment="服务商标识: deepseek/siliconflow/dashscope/openai/ollama/custom")
+    base_url = Column(String(500), nullable=False, default="https://api.deepseek.com", comment="API Base URL")
+    model = Column(String(100), nullable=False, default="deepseek-chat", comment="模型名称")
+    api_key = Column(String(255), nullable=True, default="", comment="API Key")
+    temperature = Column(Float, default=0.3, comment="温度参数")
+    max_tokens = Column(Integer, default=4096, comment="最大输出Token")
+    is_mock_mode = Column(Boolean, nullable=True, default=None, comment="显式Mock模式: None表示自动根据api_key判断")
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), comment="更新时间")

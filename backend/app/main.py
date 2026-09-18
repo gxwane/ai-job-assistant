@@ -7,7 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import MOCK_MODE
 from .database import init_db
-from .routers import analysis, history, job_records, ocr, plugin, resume, statistics
+from .routers import analysis, history, job_records, ocr, plugin, resume, settings, statistics
+from .services.llm_client import llm_client
 
 # 创建 FastAPI 应用
 app = FastAPI(
@@ -39,19 +40,21 @@ app.include_router(plugin.router)
 app.include_router(job_records.router)
 app.include_router(ocr.router)
 app.include_router(statistics.router)
+app.include_router(settings.router)
 
 
 @app.on_event("startup")
 def startup_event():
-    """应用启动时初始化数据库"""
+    """应用启动时初始化数据库与大模型运行态配置"""
     init_db()
-    if MOCK_MODE:
+    llm_client.load_active_config()
+    if llm_client.mock_mode:
         print("=" * 50)
-        print("[!] 当前运行在 MOCK 模式（未配置 DeepSeek API Key）")
-        print("    如需使用真实 AI 分析，请在 .env 文件中配置 DEEPSEEK_API_KEY")
+        print("[!] 当前运行在 MOCK 模式（未配置 API Key 或开启离线模式）")
+        print("    可在前端顶部「模型设置」或 .env 中配置 API Key")
         print("=" * 50)
     else:
-        print("[OK] 已配置 DeepSeek API，将使用真实 AI 分析")
+        print(f"[OK] 已接入大模型 ({llm_client.model})，将使用真实 AI 分析")
 
 
 @app.get("/")

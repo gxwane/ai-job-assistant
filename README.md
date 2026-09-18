@@ -30,6 +30,8 @@
   内置 ECharts 仪表板，动态追踪求职转化漏斗、技能缺口排行榜与 HR 活跃分布。底层基于 ReportLab 与 Matplotlib 动态嵌入矢量图表与系统中文字体，一键生成结构严谨、排版专业的 6 页求职复盘分析报告。
 - 💡 **针对性 30 道定制面试真题冲刺**  
   针对标记“收到面试”的岗位，结合求职者简历的具体项目经历与岗位 JD 深度定向生成 30 道高频面试题（包含考查意图与参考答案要点），助您精准备战。
+- ⚙️ **图形化大模型配置中心 (De-geekified Settings)**  
+  告别手动翻找隐藏 `.env` 文件的极客门槛。Web 界面顶部右上角一键唤起模型设置，预置 **DeepSeek 官方 / 硅基流动 / 阿里百炼 / 本地 Ollama (免Key离线) / OpenAI** 等快捷厂商模板，支持 **一键连通性极速探测 (1-token ping)** 与 **免重启动态热生效**。
 - ⚡ **现代化工程底座与零门槛体验**  
   后端全面接入 **Astral `uv`** 现代包管理（秒级依赖同步），前端基于 Vue 3 + Vite；支持 **一键免配置 Mock 演示模式**（无 Key 亦可畅玩体验全流程）与 **Docker Compose 一键容器化交付**。
 
@@ -139,25 +141,37 @@ npm run dev
 
 ---
 
-### 🔑 接入真实大模型 (可选)
+### 🔑 接入真实大模型 (两种配置方式)
 
-如需切换为真实大模型分析，请编辑 `backend/.env` 文件：
+#### 方式 A：Web 界面图形化配置 (推荐 · 开箱免重启)
+
+1. 启动项目后，在浏览器访问 Web 交互中心 (`http://localhost:5173`)；
+2. 顶部导航栏最右侧点击 **`[⚙ 模型设置]`** 唤起配置中心；
+3. **厂商一键预设**：下拉选择常用服务商（DeepSeek、硅基流动、阿里百炼、本地 Ollama 等），系统自动填入推荐端点与模型名；
+4. **填入 API Key**：支持直达官方控制台超链接一键申请获取（本地 Ollama 完全免 Key 离线运行）；
+5. 点击 **`[⚡ 测试连通性]`**：系统将发送超轻量 1-token 探测包并测量延迟，返回绿灯确认；
+6. 点击 **`[保存并立即生效]`**：后端毫秒级热生效，**无需重启任何终端服务**。
+
+#### 方式 B：环境变量文件配置 (.env 适合容器与无界面部署)
+
+亦可直接编辑 `backend/.env` 文件配置对应环境变量：
 
 ```env
 # 默认支持 DeepSeek 官方接口
 DEEPSEEK_API_KEY=sk-your-api-key-here
 DEEPSEEK_BASE_URL=https://api.deepseek.com
+DEEPSEEK_MODEL=deepseek-chat
 ```
 
-**切换至其他大模型？** 修改 `DEEPSEEK_BASE_URL` 为对应的兼容端点即可：
+**主流支持端点与模型速查**：
 
-| 模型提供商 | BASE_URL 示例 |
-|-----------|-------------|
-| **DeepSeek (默认)** | `https://api.deepseek.com` |
-| **OpenAI** | `https://api.openai.com/v1` |
-| **硅基流动 (SiliconFlow)** | `https://api.siliconflow.cn/v1` |
-| **阿里百炼 (DashScope)** | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
-| **其他兼容端点** | 填入对应 `/v1` 或自定义基础地址即可 |
+| 模型提供商 | BASE_URL 示例 | 推荐模型 | 特点说明 |
+|---|---|---|---|
+| **DeepSeek (默认)** | `https://api.deepseek.com` | `deepseek-chat` / `deepseek-reasoner` | 官方高性价比 |
+| **硅基流动 (SiliconFlow)** | `https://api.siliconflow.cn/v1` | `deepseek-ai/DeepSeek-V3` | 国内稳定加速，免费赠送14元额度 |
+| **阿里百炼 (DashScope)** | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `qwen-plus` / `deepseek-v3` | 阿里云高可用 SLA |
+| **本地 Ollama** | `http://localhost:11434/v1` | `deepseek-r1:8b` / `qwen2.5:7b` | **完全免 Key / 离线私有化** |
+| **OpenAI 官方** | `https://api.openai.com/v1` | `gpt-4o-mini` / `gpt-4o` | 标准兼容规范 |
 
 ---
 
@@ -257,6 +271,7 @@ DEEPSEEK_BASE_URL=https://api.deepseek.com
 | **插件协同** | `/api/plugin` | 浏览器插件岗位捕获、即时匹配通信与投递/沟通状态流转 |
 | **求职记录** | `/api/job-records` | 岗位生命周期管理、筛选漏斗聚合与定制 30 道面试题生成 |
 | **统计与报表** | `/api/statistics` | 全盘求职数据大屏、HR 活跃分布与 6 页专业 PDF 报告管线导出 |
+| **系统配置** | `/api/settings` | 大模型配置持久化、实时热重载与 1-token 连通性极速探测 |
 | **智能 OCR** | `/api/ocr` | 招聘截图局部文字按需提取 (可选依赖) |
 
 ---
@@ -272,13 +287,13 @@ ai-job-assistant/
 │   │   ├── database.py              # SQLite 连接与 Schema 自动迁移
 │   │   ├── models.py                # SQLAlchemy ORM 数据持久化模型
 │   │   ├── schemas.py               # Pydantic 请求/响应契约模型
-│   │   ├── routers/                 # RESTful API 控制路由层
+│   │   ├── routers/                 # RESTful API 控制路由层 (含 /api/settings 配置中心)
 │   │   ├── services/                # 核心业务逻辑服务层
 │   │   │   ├── analysis_service.py  # 岗位匹配度分析与 5 级硬规则封顶引擎
 │   │   │   ├── interview_service.py # 定制面试题生成与容错服务
 │   │   │   ├── pdf_report_service.py# 6 页专业 PDF 报告渲染与图表管线
 │   │   │   ├── plugin_service.py    # 插件岗位捕获与异步调度
-│   │   │   ├── llm_client.py        # 大模型统一客户端 (支持流式/多供应商)
+│   │   │   ├── llm_client.py        # 大模型统一客户端 (支持免重启热重载)
 │   │   │   ├── resume_parser.py     # 多格式简历解析器 (PDF / Word表格 / TXT)
 │   │   │   ├── ocr_service.py       # 截图 OCR 识别服务 (按需动态加载)
 │   │   │   └── job_parser.py        # 招聘页面文本结构化提取器
@@ -289,7 +304,7 @@ ai-job-assistant/
 │   └── .env.example                 # 环境变量配置模板
 ├── frontend/                        # Vue 3 前端工程
 │   ├── src/
-│   │   ├── components/              # 公共可复用 UI 组件 (评分环/状态标签等)
+│   │   ├── components/              # 公共可复用 UI 组件 (评分环/状态标签/模型设置弹窗)
 │   │   ├── utils/                   # 通用工具模块 (防封号时延/导出/ECharts助手)
 │   │   ├── views/                   # 核心业务页面 (看板/匹配/历史/岗位)
 │   │   ├── stores/                  # Pinia 状态管理

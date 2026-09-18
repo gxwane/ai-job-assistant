@@ -152,3 +152,20 @@ export function getHrStatusDistribution() {
 export function exportPdfReport() {
   return request.get('/statistics/report/pdf', { responseType: 'blob' })
 }
+
+// ==================== 系统配置中心 ====================
+
+/** 获取系统大模型配置 */
+export function getSettings() {
+  return request.get('/settings')
+}
+
+/** 更新系统大模型配置 */
+export function updateSettings(data) {
+  return request.post('/settings', data)
+}
+
+/** 一键连通性测试 */
+export function testConnection(data) {
+  return request.post('/settings/test', data)
+}

@@ -274,3 +274,51 @@ class AsyncTaskResponse(BaseModel):
     recommendation: str | None = Field(None, description="投递建议")
     should_recommend: bool = Field(False, description="是否建议沟通")
     composite_score: int | None = Field(None, description="综合推荐指数")
+
+
+# ==================== 系统配置相关 ====================
+
+class SystemSettingResponse(BaseModel):
+    """系统配置响应模型"""
+    provider: str = Field("deepseek", description="服务商标识")
+    base_url: str = Field("https://api.deepseek.com", description="API Base URL")
+    model: str = Field("deepseek-chat", description="模型名称")
+    masked_api_key: str = Field("", description="脱敏后的API Key")
+    has_api_key: bool = Field(False, description="是否已配置有效API Key")
+    temperature: float = Field(0.3, description="温度参数")
+    max_tokens: int = Field(4096, description="最大输出Token")
+    is_mock_mode: bool | None = Field(None, description="是否显式强制Mock模式")
+    active_mock_mode: bool = Field(True, description="当前实际生效是否为Mock模式")
+    source: str = Field("database", description="配置来源: database / env / default")
+    updated_at: datetime | None = None
+
+    class Config:
+        from_attributes = True
+
+
+class SystemSettingUpdateRequest(BaseModel):
+    """系统配置更新请求模型"""
+    provider: str = Field("deepseek", description="服务商标识")
+    base_url: str = Field(..., description="API Base URL")
+    model: str = Field(..., description="模型名称")
+    api_key: str | None = Field(None, description="API Key，若不修改传空或留掩码")
+    temperature: float = Field(0.3, ge=0.0, le=2.0, description="温度参数")
+    max_tokens: int = Field(4096, ge=256, le=32768, description="最大Token")
+    is_mock_mode: bool | None = Field(None, description="是否显式启用Mock模式")
+
+
+class SystemSettingTestRequest(BaseModel):
+    """连通性测试请求模型"""
+    provider: str = Field("deepseek", description="服务商标识")
+    base_url: str = Field(..., description="待测试的 Base URL")
+    model: str = Field(..., description="待测试的模型名称")
+    api_key: str | None = Field(None, description="待测试的 API Key")
+
+
+class SystemSettingTestResponse(BaseModel):
+    """连通性测试结果响应模型"""
+    success: bool = Field(..., description="是否连通成功")
+    latency_ms: int = Field(0, description="请求往返延迟(毫秒)")
+    message: str = Field(..., description="状态描述或友好排查建议")
+    model_used: str = Field("", description="测试所使用的模型")
+    status_code: int | None = Field(None, description="HTTP状态码")

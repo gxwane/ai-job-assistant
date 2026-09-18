@@ -21,6 +21,58 @@ class LLMClient:
         self.mock_mode = MOCK_MODE
         # mock 数据索引，用于切换不同场景
         self._mock_index = 0
+        self.load_active_config()
+
+    def load_active_config(self, db=None) -> None:
+        """从 数据库 > .env/模块变量 > 默认值 动态加载当前有效配置"""
+        try:
+            from ..database import SessionLocal
+            from ..models import SystemSetting
+            session = db or SessionLocal()
+            should_close = db is None
+            try:
+                setting = session.query(SystemSetting).filter(SystemSetting.id == 1).first()
+                if setting:
+                    self.api_key = setting.api_key or ""
+                    self.base_url = (setting.base_url or "https://api.deepseek.com").rstrip("/")
+                    self.model = setting.model or "deepseek-chat"
+                    if setting.is_mock_mode is not None:
+                        self.mock_mode = setting.is_mock_mode
+                    else:
+                        self.mock_mode = not self.api_key or self.api_key == "your_deepseek_api_key_here"
+                    return
+            finally:
+                if should_close:
+                    session.close()
+        except Exception:
+            pass
+
+        # 回退到模块变量（兼容 patch 与环境变量）
+        import sys
+        mod = sys.modules[__name__]
+        self.api_key = getattr(mod, "DEEPSEEK_API_KEY", DEEPSEEK_API_KEY)
+        self.base_url = getattr(mod, "DEEPSEEK_BASE_URL", DEEPSEEK_BASE_URL).rstrip("/")
+        self.model = getattr(mod, "DEEPSEEK_MODEL", DEEPSEEK_MODEL)
+        self.mock_mode = getattr(mod, "MOCK_MODE", MOCK_MODE)
+
+    def reload(
+        self,
+        api_key: str | None = None,
+        base_url: str | None = None,
+        model: str | None = None,
+        mock_mode: bool | None = None,
+    ) -> None:
+        """即时热重载运行时参数（供设置保存后调用，毫秒级生效）"""
+        if api_key is not None:
+            self.api_key = api_key
+        if base_url is not None:
+            self.base_url = base_url.rstrip("/")
+        if model is not None:
+            self.model = model
+        if mock_mode is not None:
+            self.mock_mode = mock_mode
+        elif api_key is not None:
+            self.mock_mode = not self.api_key or self.api_key == "your_deepseek_api_key_here"
 
     def _build_chat_url(self) -> str:
         """规范化构建 Chat Completions API URL，防止 /v1 重复拼接"""
