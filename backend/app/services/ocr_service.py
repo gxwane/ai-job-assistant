@@ -9,21 +9,37 @@ import io
 import logging
 import re
 
-from PIL import Image, ImageEnhance, ImageFilter
-import numpy as np
+# PIL and numpy are part of the optional [ocr] extra.
+# Import them lazily so the module can still be loaded when OCR is not installed.
+try:
+    from PIL import Image, ImageEnhance, ImageFilter  # noqa: F401
+    import numpy as np
+    _PIL_AVAILABLE = True
+except ImportError:
+    _PIL_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
+
+# Set to True only when EasyOCR (and its dependencies) are importable.
+OCR_AVAILABLE: bool = False
 
 _ocr_reader = None
 _paddle_ocr = None
 
 
 def _get_reader():
-    global _ocr_reader
+    global _ocr_reader, OCR_AVAILABLE
     if _ocr_reader is None:
-        import easyocr
+        try:
+            import easyocr
+        except ImportError as exc:
+            raise ImportError(
+                "EasyOCR is not installed. "
+                "Install the OCR extra with: uv pip install \".[ocr]\""
+            ) from exc
         logger.info("正在初始化 EasyOCR...")
         _ocr_reader = easyocr.Reader(['ch_sim', 'en'], gpu=False, verbose=False)
+        OCR_AVAILABLE = True
         logger.info("EasyOCR 初始化完成")
     return _ocr_reader
 

@@ -1,0 +1,67 @@
+[project]
+name = "ai-job-assistant-backend"
+version = "0.1.0"
+description = "AI-powered job application assistant — FastAPI backend"
+readme = "../README.md"
+license = { file = "../LICENSE" }
+authors = [{ name = "GX Wane", email = "gxwane@outlook.com" }]
+requires-python = ">=3.11"
+
+# ── Core runtime dependencies ──────────────────────────────────────────────────
+# EasyOCR / PaddleOCR are intentionally excluded here; install via [ocr] extra
+# to avoid pulling PyTorch (~1.5 GB) in production / CI environments.
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.0",
+    "python-multipart>=0.0.9",
+    "sqlalchemy>=2.0.30",
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.6.0",
+    "python-decouple>=3.8",
+    "httpx>=0.28.0",
+    "pypdf>=5.1.0",
+    "python-docx>=1.1.0",
+    "Pillow>=10.0.0",
+    "reportlab>=4.0.0",
+    "matplotlib>=3.8.0",
+]
+
+# ── Optional extras ────────────────────────────────────────────────────────────
+[project.optional-dependencies]
+# Install OCR support: uv pip install ".[ocr]"
+# Warning: pulls PyTorch (~1.5 GB). Requires numpy as a transitive dep.
+ocr = [
+    "numpy>=1.24.0",
+    "easyocr>=1.7.0",
+]
+
+# Install dev tooling: uv pip install ".[dev]"
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "httpx>=0.28.0",      # for TestClient
+    "ruff>=0.4.0",
+]
+
+# ── Build system ───────────────────────────────────────────────────────────────
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# ── Ruff (linter + formatter, replaces flake8/black/isort) ────────────────────
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]   # pycodestyle, pyflakes, isort, pyupgrade
+ignore = ["E501"]                  # line-too-long handled by formatter
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# ── Pytest ─────────────────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
