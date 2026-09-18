@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run --environment happy-dom"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
@@ -17,7 +18,11 @@
     "vue-router": "^4.2.5"
   },
   "devDependencies": {
+    "@pinia/testing": "^2.0.1",
     "@vitejs/plugin-vue": "^4.5.2",
-    "vite": "^5.0.10"
+    "@vue/test-utils": "^2.5.1",
+    "happy-dom": "^20.14.5",
+    "vite": "^5.0.10",
+    "vitest": "^2.1.9"
   }
 }
