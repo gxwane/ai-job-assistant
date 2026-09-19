@@ -40,9 +40,10 @@ ENV UV_SYSTEM_PYTHON=1 \
     UV_LINK_MODE=copy \
     PYTHONUNBUFFERED=1
 
-# 优先复制依赖文件，最大化层缓存命中
+# 优先复制依赖文件与锁定清单，基于 uv.lock 实现确定性构建
 COPY backend/pyproject.toml backend/uv.lock ./
-RUN uv pip install --no-cache -r pyproject.toml
+RUN uv sync --frozen --no-dev --no-install-project
+
 
 # 复制后端源码
 COPY backend/app ./app
