@@ -33,16 +33,16 @@ command -v npm >/dev/null 2>&1 || { echo -e "\033[1;31m[ERROR] 未检测到 npm�
 # 2. 后端代码静态检查 (Fail-Fast)
 run_step "后端代码静态检查 (Ruff)" bash -c "cd '$REPO_ROOT/backend' && uv run ruff check"
 
-# 3. 后端测试门禁 (94 项用例)
-run_step "后端自动化测试 (pytest 94 项用例)" bash -c "cd '$REPO_ROOT/backend' && uv run pytest tests"
+# 3. 后端测试门禁
+run_step "后端自动化测试 (pytest)" bash -c "cd '$REPO_ROOT/backend' && uv run pytest tests"
 
 # 4. 前端依赖前置检查
 if [ ! -d "$REPO_ROOT/frontend/node_modules" ]; then
     run_step "前端依赖安装 (npm install)" bash -c "cd '$REPO_ROOT/frontend' && npm install"
 fi
 
-# 5. 前端单测门禁 (39 项用例)
-run_step "前端单元测试 (vitest 39 项用例)" bash -c "cd '$REPO_ROOT/frontend' && npm test"
+# 5. 前端单测门禁
+run_step "前端单元测试 (vitest)" bash -c "cd '$REPO_ROOT/frontend' && npm test"
 
 # 6. 前端生产构建门禁 (Vite Build)
 run_step "前端生产打包构建 (Vite build)" bash -c "cd '$REPO_ROOT/frontend' && npm run build"

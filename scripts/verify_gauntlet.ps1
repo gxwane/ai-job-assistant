@@ -47,7 +47,7 @@ Run-Step "Backend code linting (Ruff)" {
 }
 
 # 3. Backend tests
-Run-Step "Backend pytest suite (94 tests)" {
+Run-Step "Backend pytest test suite" {
     Set-Location "$RepoRoot\backend"
     uv run pytest tests
 }

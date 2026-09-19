@@ -40,7 +40,7 @@ jobs:
       - name: Run Ruff code linting
         run: uv run ruff check
 
-      - name: Run pytest test suite (94 tests)
+      - name: Run pytest test suite
         run: uv run pytest tests
 
   frontend-ci:

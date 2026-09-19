@@ -61,10 +61,11 @@ flowchart TD
         DB --> InterviewGen["针对性 30 道面试真题生成"]
     end
 
-    subgraph WebUI ["Vue 3 交互控制台 (Port 5173)"]
+    subgraph WebUI ["Vue 3 交互控制台 (开发模式: 5173 / 生产与Docker: 8000)"]
         DB --> View["求职漏斗看板与高匹配岗位推荐"]
         ReportPipeline --> Export["一键导出 6 页专业求职战报"]
     end
+
 ```
 
 ---
@@ -156,8 +157,9 @@ npm run dev
 
 #### 方式 A：Web 界面图形化配置 (推荐 · 开箱免重启)
 
-1. 启动项目后，在浏览器访问 Web 交互中心 (`http://localhost:5173`)；
+1. 启动项目后，在浏览器访问 Web 交互中心（开发环境访问 `http://localhost:5173`；Windows 便携包或 Docker 环境直接访问 `http://localhost:8000`）；
 2. 顶部导航栏最右侧点击 **`[⚙ 模型设置]`** 唤起配置中心；
+
 3. **厂商一键预设**：下拉选择常用服务商（DeepSeek、硅基流动、阿里百炼、本地 Ollama 等），系统自动填入推荐端点与模型名；
 4. **填入 API Key**：支持直达官方控制台超链接一键申请获取（本地 Ollama 完全免 Key 离线运行）；
 5. 点击 **`[⚡ 测试连通性]`**：系统将发送超轻量 1-token 探测包并测量延迟，返回绿灯确认；
@@ -309,29 +311,31 @@ ai-job-assistant/
 │   │   │   ├── ocr_service.py       # 截图 OCR 识别服务 (按需动态加载)
 │   │   │   └── job_parser.py        # 招聘页面文本结构化提取器
 │   │   └── prompts/                 # 结构化 Prompt 提示词模板
-│   ├── tests/                       # 后端 pytest 自动化测试套件
+│   ├── tests/                       # 后端 pytest 自动化测试套件 (100 项用例)
 │   ├── pyproject.toml               # 项目配置与 Astral uv 依赖声明
+│   ├── requirements-portable.txt    # Windows 便携包专用精简依赖清单
 │   ├── uv.lock                      # 跨平台依赖精确锁定文件
 │   └── .env.example                 # 环境变量配置模板
 ├── frontend/                        # Vue 3 前端工程
-│   ├── src/
-│   │   ├── components/              # 公共可复用 UI 组件 (评分环/状态标签/模型设置弹窗)
-│   │   ├── utils/                   # 通用工具模块 (防封号时延/导出/ECharts助手)
-│   │   ├── views/                   # 核心业务页面 (看板/匹配/历史/岗位)
-│   │   ├── stores/                  # Pinia 状态管理
-│   │   └── api/                     # 后端 API 请求客户端封装
-│   ├── package.json                 # 前端依赖配置
-│   └── vite.config.js               # Vite 生产与开发构建配置
+│   ├── src/                         # 源码目录 (Pinia/ECharts/公共组件库)
+│   ├── package.json                 # 前端依赖与构建脚本
+│   └── vite.config.js               # manualChunks 分包优化与构建配置
 ├── extension/                       # 浏览器扩展 (Manifest V3)
-│   ├── content.js                   # 页面注入脚本 (拟人化时延与防封号熔断)
+│   ├── src/                         # 扩展模块化 ES 源码目录
+│   ├── content.js                   # 扩展构建产物 (由 npm run build:extension 产出)
 │   ├── background.js                # 扩展后台 Service Worker
-│   └── popup.html / popup.js        # 扩展配置弹窗
-├── scripts/                         # 跨平台工程自动化脚本
-│   ├── start_dev.bat / .sh          # Windows / Linux 极速一键开发启动
-│   └── verify_gauntlet.bat / .sh    # 全栈自动化质量门禁套件
+│   ├── popup.html / popup.js        # 扩展配置弹窗
+│   ├── manifest.json                # MV3 扩展清单描述文件
+│   └── README.md                    # 插件专用安装与 DOM 维护指南
+├── scripts/                         # 跨平台工程自动化与部署脚本
+│   ├── start_dev.bat / .sh          # Windows / Linux 一键自愈开发启动
+│   ├── stop_dev.bat                 # Windows 一键安全停服与端口释放
+│   ├── build_portable_win.bat       # Windows 零依赖便携包自动化构建工具
+│   ├── verify_gauntlet.ps1 / .sh    # 全栈自动化质量门禁套件 (141+ 自动化测试)
+│   └── verify_gauntlet.bat          # Windows 门禁便捷调用入口
 ├── docs/                            # 项目文档与资源说明
-├── Dockerfile                       # 后端 Linux 容器镜像 (内置中文字体)
-├── docker-compose.yml               # 一键容器编排部署文件
+├── Dockerfile                       # 全栈多阶段构建容器镜像 (Node 前端构建 + Python 静态托管与中文字体)
+├── docker-compose.yml               # 一键容器编排部署文件 (单容器单端口 8000)
 ├── CONTRIBUTING.md                  # 社区贡献与开发规范指南
 ├── LICENSE                          # MIT 开源许可证
 └── README.md                        # 项目主说明文档

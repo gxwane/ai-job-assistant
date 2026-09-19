@@ -10,7 +10,6 @@ from fastapi.staticfiles import StaticFiles
 
 from .config import MOCK_MODE
 from .database import init_db
-
 from .routers import analysis, history, job_records, ocr, plugin, resume, settings, statistics
 from .services.llm_client import llm_client
 
@@ -68,7 +67,7 @@ def startup_event():
     _dist = os.path.normpath(_dist)
     if os.path.isdir(_dist):
         app.mount("/", StaticFiles(directory=_dist, html=True), name="frontend")
-        print(f"[OK] 前端静态文件已就绪 → http://127.0.0.1:8000")
+        print("[OK] 前端静态文件已就绪 → http://127.0.0.1:8000")
     else:
         print("[INFO] 未检测到前端构建产物（frontend/dist），纯 API 模式运行。")
         print("       如需 Web 界面，请在 frontend/ 目录执行：npm run build")

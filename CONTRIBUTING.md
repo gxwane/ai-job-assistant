@@ -81,11 +81,11 @@ npm run build:extension
 
 ## 4. 极速一键启动脚本
 
-项目中内置了跨平台的快速启动批处理脚本：
-- **Windows**：双击或终端运行 `scripts/start_dev.bat`
-- **macOS / Linux**：终端运行 `bash scripts/start_dev.sh`
+项目中内置了跨平台的快速启动与进程回收脚本：
+- **Windows**：双击或终端运行 `scripts/start_dev.bat` 启动；停止服务并释放 8000/5173 端口请运行 `scripts/stop_dev.bat`；
+- **macOS / Linux**：终端运行 `bash scripts/start_dev.sh`（内置信号监听，按 `Ctrl+C` 会自动触发清理陷阱，优雅释放端口）。
 
-脚本将自动检查环境、初始化 `.env` 并并行启动前后端开发服务。
+脚本将自动检测前置环境、自愈安装依赖、初始化 `.env` 并并行启动前后端开发服务。
 
 ---
 
@@ -97,17 +97,19 @@ npm run build:extension
   ```powershell
   powershell -ExecutionPolicy Bypass -File scripts/verify_gauntlet.ps1
   ```
+  *(亦可直接双击运行 `scripts/verify_gauntlet.bat`)*
 - **macOS / Linux (Bash)**:
   ```bash
   bash scripts/verify_gauntlet.sh
   ```
 
-### 门禁核验项目：
+### 门禁核验项目（共 141 项自动化测试）：
 1. **Ruff 静态检查**：`uv run ruff check`（无语法告警与无用导入）；
-2. **后端单元测试**：`uv run pytest tests`（94 个单元测试全绿通过）；
-3. **前端单元测试**：`npm test`（39 个 Vitest 测试通过）；
-4. **前端生产打包**：`npm run build`（Vite 生产包正常产出）；
-5. **插件模块打包**：`npm run build:extension`（编译产出 `extension/content.js`）。
+2. **后端单元测试**：`uv run pytest tests`（**100** 个单元测试全绿通过）；
+3. **前端单元测试**：`npm test`（**41** 个 Vitest 测试全绿通过）；
+4. **前端生产打包**：`npm run build`（Vite 生产包正常产出，自动分包无超限告警）；
+5. **插件模块打包与防漂移**：`npm run build:extension`（严禁直接手动修改 `extension/content.js`，须在 `extension/src/` 中修改源码后重新编译打包，CI 将通过 `git diff` 拦截未编译提交）。
+
 
 ---
 
