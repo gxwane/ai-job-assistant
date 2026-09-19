@@ -1,0 +1,253 @@
+name: CD Release Pipeline
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: '目标版本号 (例如 v1.0.0 或 v1.0.0-rc.1)'
+        required: true
+        default: 'v1.0.0'
+      is_draft:
+        description: '是否发布为维护者草稿 (Draft Release)'
+        type: boolean
+        default: false
+      is_prerelease:
+        description: '是否标记为测试版 (Pre-release，如不选将根据版本号自动判断)'
+        type: boolean
+        default: false
+      dry_run:
+        description: '演练模式 (仅构建 Artifacts，不创建 GitHub Release)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: cd-release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  # ── 1. 严格质量门禁 ──────────────────────────────────────────────────────────
+  quality-gate:
+    name: Quality Gate Verification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Astral uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          enable-cache: true
+          cache-dependency-glob: "backend/uv.lock"
+
+      - name: Run Backend Gate (Ruff & Pytest)
+        run: |
+          cd backend
+          uv python install 3.11
+          uv sync --locked --extra dev
+          uv run ruff check
+          uv run pytest tests
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: "frontend/package-lock.json"
+
+      - name: Run Frontend Gate (Vitest & Extension Consistency)
+        run: |
+          cd frontend
+          npm ci
+          npm test
+          npm run build:extension
+          test -s ../extension/content.js
+          git diff --exit-code ../extension/content.js
+
+  # ── 2. 构建独立浏览器插件包 ─────────────────────────────────────────────────
+  build-extension:
+    name: Build Chrome Extension
+    needs: quality-gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve Version
+        id: vars
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            RAW_TAG="${{ inputs.version_tag }}"
+          else
+            RAW_TAG="${{ github.ref_name }}"
+          fi
+          [[ "$RAW_TAG" != v* ]] && RAW_TAG="v${RAW_TAG}"
+          echo "tag=${RAW_TAG}" >> $GITHUB_OUTPUT
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: "frontend/package-lock.json"
+
+      - name: Compile Extension
+        run: |
+          cd frontend
+          npm ci
+          npm run build:extension
+
+      - name: Package Extension ZIP (Root Manifest)
+        run: |
+          mkdir -p dist-pkg/chrome-extension
+          cp extension/manifest.json dist-pkg/chrome-extension/
+          cp extension/content.js dist-pkg/chrome-extension/
+          cp extension/background.js dist-pkg/chrome-extension/
+          cp extension/popup.html dist-pkg/chrome-extension/
+          cp extension/popup.js dist-pkg/chrome-extension/
+          
+          cat << 'EOF' > dist-pkg/chrome-extension/插件安装说明.txt
+          AI求职助手 - 浏览器插件安装指南
+          ===============================
+          1. 打开 Chrome 或 Edge 浏览器，访问 chrome://extensions 或 edge://extensions
+          2. 开启页面右上角的「开发者模式」开关
+          3. 点击「加载已解压的扩展程序」，选择当前解压后的文件夹即可完成安装！
+          EOF
+
+          cd dist-pkg/chrome-extension
+          zip -r ../../chrome-extension-${{ steps.vars.outputs.tag }}.zip ./*
+
+      - name: Upload Extension Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chrome-extension
+          path: chrome-extension-${{ steps.vars.outputs.tag }}.zip
+          retention-days: 7
+
+  # ── 3. 构建 Windows 一体化便携包 ───────────────────────────────────────────
+  build-windows-portable:
+    name: Build Windows Portable Package
+    needs: quality-gate
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve Version
+        id: vars
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            RAW_TAG="${{ inputs.version_tag }}"
+          else
+            RAW_TAG="${{ github.ref_name }}"
+          fi
+          [[ "$RAW_TAG" != v* ]] && RAW_TAG="v${RAW_TAG}"
+          echo "tag=${RAW_TAG}" >> $GITHUB_OUTPUT
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: "frontend/package-lock.json"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache Python Embedded ZIP
+        uses: actions/cache@v4
+        with:
+          path: dist/_python_embed.zip
+          key: python-embed-3.11.9
+
+      - name: Install Frontend Dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Execute Windows Portable Builder
+        shell: cmd
+        env:
+          CI: "true"
+        run: scripts\build_portable_win.bat ${{ steps.vars.outputs.tag }} <nul
+
+      - name: Upload Windows Portable Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-portable
+          path: dist/AI求职助手_Win64_${{ steps.vars.outputs.tag }}.zip
+          retention-days: 7
+
+  # ── 4. 汇总、校验与发布 ───────────────────────────────────────────────────
+  publish-release:
+    name: Publish GitHub Release
+    needs: [build-extension, build-windows-portable]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve Release Metadata
+        id: meta
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.version_tag }}"
+            [[ "$TAG" != v* ]] && TAG="v${TAG}"
+            DRAFT="${{ inputs.is_draft }}"
+            if [ "${{ inputs.is_prerelease }}" = "true" ] || [[ "$TAG" == *"-"* ]]; then
+              PRERELEASE="true"
+            else
+              PRERELEASE="false"
+            fi
+            DRY_RUN="${{ inputs.dry_run }}"
+          else
+            TAG="${{ github.ref_name }}"
+            DRAFT="false"
+            if [[ "$TAG" == *"-"* ]]; then
+              PRERELEASE="true"
+            else
+              PRERELEASE="false"
+            fi
+            DRY_RUN="false"
+          fi
+
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "draft=${DRAFT}" >> $GITHUB_OUTPUT
+          echo "prerelease=${PRERELEASE}" >> $GITHUB_OUTPUT
+          echo "dry_run=${DRY_RUN}" >> $GITHUB_OUTPUT
+
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Generate SHA256 Checksums
+        run: |
+          cd release-assets
+          sha256sum *.zip > checksums.txt
+          echo "=== Calculated SHA256 Checksums ==="
+          cat checksums.txt
+
+      - name: Publish to GitHub Releases
+        if: steps.meta.outputs.dry_run != 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: AI求职助手 ${{ steps.meta.outputs.tag }}
+          draft: ${{ steps.meta.outputs.draft == 'true' }}
+          prerelease: ${{ steps.meta.outputs.prerelease == 'true' }}
+          generate_release_notes: true
+          files: |
+            release-assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Dry Run Notice
+        if: steps.meta.outputs.dry_run == 'true'
+        run: |
+          echo "::notice::[Dry Run 演练模式] 产物构建与 SHA256 校验已完成，未向 GitHub 发布 Release。请在 Actions Artifacts 中下载验证。"
