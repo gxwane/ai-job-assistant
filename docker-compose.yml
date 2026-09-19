@@ -1,36 +1,43 @@
 version: "3.8"
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  AI求职助手 · Docker Compose 一键启动
+#
+#  架构说明（阶段二：单端口融合）：
+#    前端 Vue 3 静态产物由 FastAPI 后端直接托管，无需独立的 Nginx 容器。
+#    所有访问统一走 http://localhost:8000，降低用户配置复杂度。
+#
+#  使用方式：
+#    1. 构建并启动：docker compose up -d --build
+#    2. 打开浏览器访问：http://localhost:8000
+#    3. 停止服务：docker compose down
+# ─────────────────────────────────────────────────────────────────────────────
+
 services:
   backend:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: ai-job-assistant-backend
+    container_name: ai-job-assistant
     ports:
       - "8000:8000"
     environment:
+      # 不填写 API Key 时自动以 Mock 离线模式运行，可在页面右上角「模型设置」热配置
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
       - DEEPSEEK_BASE_URL=${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
       - DEEPSEEK_MODEL=${DEEPSEEK_MODEL:-deepseek-v4-flash}
       - DATABASE_URL=sqlite:////app/data/ai_job_assistant.db
     volumes:
-      - backend_uploads:/app/uploads
-      - backend_data:/app/data
+      - ai_job_assistant_uploads:/app/uploads
+      - ai_job_assistant_data:/app/data
     restart: unless-stopped
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: ai-job-assistant-frontend
-    ports:
-      - "5173:80"
-    depends_on:
-      - backend
-    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
 volumes:
-  backend_uploads:
-    name: ai_job_assistant_uploads
-  backend_data:
-    name: ai_job_assistant_data
+  ai_job_assistant_uploads:
+  ai_job_assistant_data:

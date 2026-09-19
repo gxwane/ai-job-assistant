@@ -1,41 +1,60 @@
 # ==============================================================================
-# AI Job Assistant - Backend Dockerfile
-# Optimized with Astral uv, multi-stage font support, and non-root security.
+# AI Job Assistant - 全栈单容器 Dockerfile（阶段二：单端口融合）
+#
+# 构建策略：多阶段构建
+#   Stage 1 (frontend-builder): Node.js 环境中构建 Vue 3 前端产物
+#   Stage 2 (runtime):          Python 环境运行 FastAPI，并托管前端静态文件
+#
+# 最终效果：用户只需访问 http://localhost:8000，前后端均由单一容器提供。
 # ==============================================================================
 
+# ─── Stage 1: 构建前端静态产物 ───────────────────────────────────────────────
+FROM node:20-alpine AS frontend-builder
+
+WORKDIR /frontend
+
+# 先复制 package 文件，利用 Docker 层缓存（依赖未变时跳过 npm install）
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci --silent
+
+# 复制前端源码并构建
+COPY frontend/ ./
+RUN npm run build
+
+# ─── Stage 2: Python 运行时 + 中文字体 + 前端静态文件 ────────────────────────
 FROM python:3.11-slim AS runtime
 
 WORKDIR /app
 
-# Install Debian open-source Chinese fonts to guarantee ReportLab PDF generation
-# without UnicodeEncodeError or missing character rendering.
+# 安装开源中文字体（保证 ReportLab PDF 中文字符正常渲染）
 RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-wqy-zenhei \
     fonts-wqy-microhei \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy uv binary directly from official Astral image
+# 复制 uv 二进制（Astral 官方镜像）
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
-# Set uv environment variables for reproducible in-container installs
 ENV UV_SYSTEM_PYTHON=1 \
     UV_LINK_MODE=copy \
     PYTHONUNBUFFERED=1
 
-# Copy dependency specifications first for optimal Docker layer caching
+# 优先复制依赖文件，最大化层缓存命中
 COPY backend/pyproject.toml backend/uv.lock ./
-
-# Synchronize dependencies strictly from uv.lock (no dev dependencies)
 RUN uv pip install --no-cache -r pyproject.toml
 
-# Copy backend application source code
+# 复制后端源码
 COPY backend/app ./app
 
-# Create persistent storage directories
+# 从 Stage 1 复制前端构建产物到 FastAPI 可托管路径
+# main.py startup 事件会检测此目录并自动挂载 StaticFiles
+COPY --from=frontend-builder /frontend/dist ./frontend/dist
+
+# 创建持久化目录
 RUN mkdir -p /app/uploads /app/data
 
 EXPOSE 8000
 
-# Run FastAPI backend via Uvicorn
+# 以 uvicorn 运行，前端由 FastAPI StaticFiles 托管
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
