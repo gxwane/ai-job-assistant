@@ -71,44 +71,55 @@ flowchart TD
 
 ## 🚀 快速开始
 
-> 💡 **零配置开箱提示**：  
-> 本项目默认开启 **高质量 Mock 模式**。无论是运行脚本还是 Docker，无需填写任何 API Key 即可启动并体验完整的 Web 界面、简历解析、岗位打分、图表看板与 PDF 报告导出！若需激活真实 AI，只需在 `backend/.env` 中配置 `DEEPSEEK_API_KEY`。
-
-### 环境要求
-
-- **Python**：>= 3.11（推荐安装 [Astral uv](https://docs.astral.sh/uv/)）
-- **Node.js**：>= 18.0.0
-- **浏览器**：Google Chrome 或 Microsoft Edge
+> 💡 **零配置开箱提示**：默认开启 **Mock 离线模式**，无需填写任何 API Key 即可体验完整功能。
+> 启动后在页面右上角「⚙ 模型设置」中一键填写 API Key 即可切换为真实 AI 模式。
 
 ---
 
-### 方式一：一键脚本极速启动（推荐日常使用）
+### 方式零：Windows 便携包（最简单，无需安装任何软件）
 
-克隆项目后，无需在多个终端繁琐切换：
+> 适合完全不懂技术的用户，解压即用。
 
-- **Windows 用户**：双击运行或在终端执行：
+1. 前往 [Releases](https://github.com/GXWane/ai-job-assistant/releases) 下载 `AI求职助手_Win64.zip`
+2. 解压到任意目录
+3. 双击 **`启动.bat`**，等待浏览器自动弹出
+
+| 文件 | 作用 |
+|------|------|
+| `启动.bat` | 双击启动，自动打开浏览器 |
+| `停止.bat` | 停止服务，释放端口 |
+| `README.txt` | 简明使用说明（记事本可读） |
+
+---
+
+### 方式一：一键脚本极速启动（推荐开发者日常使用）
+
+> 需要 Python 3.11+、Node.js 18+
+
+- **Windows 用户**：双击或在终端运行（脚本自动安装依赖、打开浏览器）：
   ```cmd
   scripts\start_dev.bat
   ```
+  停止服务：`scripts\stop_dev.bat`
+
 - **Linux / macOS / WSL 用户**：
   ```bash
   chmod +x scripts/*.sh
-  ./scripts/start_dev.sh
+  ./scripts/start_dev.sh    # Ctrl+C 可同时停止所有服务
   ```
-> 脚本会自动检测端口、自动从 `.env.example` 初始化 `backend/.env`、自动并行拉起后端（端口 8000）与前端（端口 5173），并在退出时安全回收后台进程。
 
 ---
 
-### 方式二：Docker Compose 容器化部署（开箱即用）
-
-无需在本地配置 Python 或 Node.js 开发环境，基于容器一键交付：
+### 方式二：Docker Compose 容器化部署（单命令、单端口）
 
 ```bash
-# 启动前后端容器集群（后端已内置 Linux 中文字体支持）
-docker compose up -d
+docker compose up -d --build
 ```
-- 前端 Web 界面：`http://localhost:5173`
-- 后端 API 文档：`http://localhost:8000/docs`
+
+- Web 界面 + API 统一入口：`http://localhost:8000`（阶段二已融合为单端口）
+- API 文档：`http://localhost:8000/docs`
+
+停止：`docker compose down`
 
 ---
 
