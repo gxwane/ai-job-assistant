@@ -1,315 +1,362 @@
 <template>
-  <!-- 分析结果页 - 商业化报告风格 -->
+  <!-- 分析结果页 - 现代 Bento Grid 仪表盘风格 -->
   <div class="result-page">
-    <el-steps :active="3" align-center class="steps">
+    <el-steps :active="3" align-center class="result-steps">
       <el-step title="上传简历" />
       <el-step title="岗位分析" />
       <el-step title="查看结果" />
     </el-steps>
 
-    <div v-if="result" class="result-content">
-      <!-- ========== 1. 分数仪表盘 + 等级 + 建议 ========== -->
-      <el-card shadow="hover" class="score-dashboard">
-        <div class="dashboard-body">
-          <div class="dashboard-left">
+    <div v-if="result" class="result-bento-layout">
+      <!-- ================= 左侧：核心概览与操作坞 (Sticky Overview) ================= -->
+      <aside class="result-sidebar">
+        <!-- 1. 总分仪表盘卡片 -->
+        <div class="bento-card score-hero-card score-dashboard">
+          <div class="score-ring-container">
             <el-progress
               type="dashboard"
               :percentage="result.result_json.match_score"
               :color="scoreColor"
-              :stroke-width="14"
-              :width="160"
+              :stroke-width="12"
+              :width="150"
             >
               <template #default="{ percentage }">
-                <span class="score-number">{{ percentage }}</span>
-                <span class="score-unit">分</span>
+                <div class="score-text-inner">
+                  <span class="score-val">{{ percentage }}</span>
+                  <span class="score-unit">分</span>
+                </div>
               </template>
             </el-progress>
           </div>
-          <div class="dashboard-right">
-            <div class="score-level-tag">
+
+          <div class="score-meta-panel">
+            <div class="score-badge-wrap">
               <el-tag
                 :type="scoreLevelType"
                 size="large"
                 effect="dark"
                 round
+                class="score-status-badge"
               >
                 {{ result.result_json.score_level || scoreLabel }}
               </el-tag>
             </div>
-            <p class="recommendation-text">
-              <el-icon><InfoFilled /></el-icon>
+            <p class="score-summary-advice">
               {{ result.result_json.recommendation || scoreLabel }}
             </p>
-            <div class="dashboard-meta">
-              <span>岗位：{{ result.job_title }}</span>
+            <div class="job-target-chip">
+              <el-icon><Briefcase /></el-icon>
+              <span class="job-title-text">{{ result.job_title }}</span>
             </div>
           </div>
         </div>
-      </el-card>
 
-      <!-- ========== 2. 风险提示 / 封顶原因 ========== -->
-      <el-alert
-        v-if="result.result_json.risk_warnings && result.result_json.risk_warnings.length > 0"
-        title="风险提示"
-        type="warning"
-        :closable="false"
-        show-icon
-      >
-        <ul class="alert-list">
-          <li v-for="(w, i) in result.result_json.risk_warnings" :key="i">{{ w }}</li>
-        </ul>
-      </el-alert>
+        <!-- 2. 岗位方向匹配卡片 -->
+        <div class="bento-card direction-card">
+          <div class="bento-header">
+            <div class="bento-title-icon icon-blue">
+              <el-icon><Guide /></el-icon>
+            </div>
+            <span class="bento-title">方向对齐判定</span>
+          </div>
 
-      <el-alert
-        v-if="result.result_json.score_cap_reason"
-        title="评分封顶说明"
-        type="info"
-        :closable="false"
-        show-icon
-      >
-        <p>{{ result.result_json.score_cap_reason }}</p>
-      </el-alert>
+          <div class="direction-grid">
+            <div class="direction-cell">
+              <span class="dir-k">候选人画像</span>
+              <span class="dir-v dir-v-primary">{{ result.result_json.resume_category || '通用/未识别' }}</span>
+            </div>
+            <div class="direction-cell">
+              <span class="dir-k">岗位定位</span>
+              <span class="dir-v dir-v-warning">{{ result.result_json.job_category || '通用/未识别' }}</span>
+            </div>
+          </div>
 
-      <!-- ========== 3. 岗位方向判断 ========== -->
-      <el-card shadow="hover" class="section-card">
-        <template #header>
-          <span class="section-title">
-            <el-icon color="#409EFF"><Guide /></el-icon> 岗位方向分析
-          </span>
-        </template>
-        <el-descriptions :column="2" border>
-          <el-descriptions-item label="候选人方向">
-            <el-tag type="primary" effect="plain">{{ result.result_json.resume_category || '未知' }}</el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="岗位方向">
-            <el-tag type="warning" effect="plain">{{ result.result_json.job_category || '未知' }}</el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="方向是否匹配">
-            <el-tag :type="result.result_json.category_match ? 'success' : 'danger'">
-              {{ result.result_json.category_match ? '匹配' : '不匹配' }}
-            </el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="判断理由">
-            {{ result.result_json.category_reason || '无' }}
-          </el-descriptions-item>
-        </el-descriptions>
-      </el-card>
-
-      <!-- ========== 4. 分项评分卡片 ========== -->
-      <el-card shadow="hover" class="section-card">
-        <template #header>
-          <span class="section-title">
-            <el-icon color="#67C23A"><DataAnalysis /></el-icon> 分项评分明细
-          </span>
-        </template>
-        <div class="sub-score-grid">
-          <div class="sub-score-item">
-            <div class="sub-score-header">
-              <span>技能匹配</span>
-              <span class="sub-score-value">{{ scoreBreakdown.skill_score }}/40</span>
-            </div>
-            <el-progress
-              :percentage="(scoreBreakdown.skill_score / 40) * 100"
-              :color="progressColor(scoreBreakdown.skill_score, 40)"
-              :stroke-width="10"
-            />
+          <div class="direction-verdict-row">
+            <span class="verdict-label">匹配结论</span>
+            <span class="verdict-tag" :class="result.result_json.category_match ? 'tag-match' : 'tag-mismatch'">
+              {{ result.result_json.category_match ? '✓ 方向一致' : '✕ 跨方向/偏离' }}
+            </span>
           </div>
-          <div class="sub-score-item">
-            <div class="sub-score-header">
-              <span>项目经验</span>
-              <span class="sub-score-value">{{ scoreBreakdown.project_score }}/30</span>
-            </div>
-            <el-progress
-              :percentage="(scoreBreakdown.project_score / 30) * 100"
-              :color="progressColor(scoreBreakdown.project_score, 30)"
-              :stroke-width="10"
-            />
-          </div>
-          <div class="sub-score-item">
-            <div class="sub-score-header">
-              <span>学历背景</span>
-              <span class="sub-score-value">{{ scoreBreakdown.education_score }}/15</span>
-            </div>
-            <el-progress
-              :percentage="(scoreBreakdown.education_score / 15) * 100"
-              :color="progressColor(scoreBreakdown.education_score, 15)"
-              :stroke-width="10"
-            />
-          </div>
-          <div class="sub-score-item">
-            <div class="sub-score-header">
-              <span>发展潜力</span>
-              <span class="sub-score-value">{{ scoreBreakdown.potential_score }}/15</span>
-            </div>
-            <el-progress
-              :percentage="(scoreBreakdown.potential_score / 15) * 100"
-              :color="progressColor(scoreBreakdown.potential_score, 15)"
-              :stroke-width="10"
-            />
-          </div>
+          <p v-if="result.result_json.category_reason" class="verdict-reason">
+            {{ result.result_json.category_reason }}
+          </p>
         </div>
 
-        <!-- 原始总分 vs 封顶提示 -->
-        <div v-if="scoreBreakdown.final_cap != null" class="cap-notice">
-          <el-icon color="#E6A23C"><WarningFilled /></el-icon>
-          原始得分 {{ scoreBreakdown.raw_total }} 分 → 触发封顶规则，最终得分 {{ scoreBreakdown.final_score }} 分
-        </div>
-      </el-card>
+        <!-- 3. 核心技能命中率卡片 -->
+        <div class="bento-card hit-rate-card">
+          <div class="bento-header">
+            <div class="bento-title-icon icon-purple">
+              <el-icon><Aim /></el-icon>
+            </div>
+            <span class="bento-title">核心技能命中率</span>
+          </div>
 
-      <!-- ========== 5. 核心技能命中率 ========== -->
-      <el-card shadow="hover" class="section-card">
-        <template #header>
-          <span class="section-title">
-            <el-icon color="#9B59B6"><Aim /></el-icon> 核心技能命中率
-          </span>
-        </template>
-        <div class="hit-rate-section">
-          <div class="hit-rate-bar">
+          <div class="hit-rate-bar-wrap">
             <el-progress
               :percentage="Math.round((result.result_json.core_skill_hit_rate || 0) * 100)"
               :color="hitRateColor"
-              :stroke-width="16"
-            >
-              <template #default>
-                <span class="hit-rate-text">
-                  {{ Math.round((result.result_json.core_skill_hit_rate || 0) * 100) }}%
-                </span>
-              </template>
-            </el-progress>
+              :stroke-width="12"
+            />
           </div>
 
-          <div class="skill-compare">
-            <div class="skill-col">
-              <h4>
-                <el-icon color="#67C23A"><CircleCheckFilled /></el-icon>
-                已匹配核心技能（{{ (result.result_json.matched_core_skills || []).length }}）
-              </h4>
+          <div class="hit-rate-counts">
+            <div class="hit-count-pill pill-success">
+              <span class="pill-dot dot-green"></span>
+              <span>命中 {{ (result.result_json.matched_core_skills || []).length }} 项</span>
+            </div>
+            <div class="hit-count-pill pill-danger">
+              <span class="pill-dot dot-red"></span>
+              <span>待补 {{ (result.result_json.missing_core_skills || []).length }} 项</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. 快捷操作坞 (Action Dock) -->
+        <div class="bento-card action-dock-card">
+          <el-button type="primary" class="dock-btn-primary" @click="$router.push('/upload')">
+            <el-icon><Refresh /></el-icon> 分析新岗位
+          </el-button>
+          <el-button class="dock-btn-secondary" @click="$router.push('/history')">
+            <el-icon><Clock /></el-icon> 查看历史
+          </el-button>
+        </div>
+      </aside>
+
+      <!-- ================= 右侧：多维能力画像与深度矩阵 (Detailed Matrix) ================= -->
+      <main class="result-main-col">
+        <!-- 风险提示与封顶警告（如有） -->
+        <div v-if="result.result_json.risk_warnings && result.result_json.risk_warnings.length > 0" class="alert-block">
+          <el-alert
+            title="投递前风险提示"
+            type="warning"
+            :closable="false"
+            show-icon
+          >
+            <ul class="alert-list">
+              <li v-for="(w, i) in result.result_json.risk_warnings" :key="i">{{ w }}</li>
+            </ul>
+          </el-alert>
+        </div>
+
+        <div v-if="result.result_json.score_cap_reason" class="alert-block">
+          <el-alert
+            title="规则封顶约束说明"
+            type="info"
+            :closable="false"
+            show-icon
+          >
+            <p>{{ result.result_json.score_cap_reason }}</p>
+          </el-alert>
+        </div>
+
+        <!-- 1. 四维能力分项打分矩阵 -->
+        <div class="bento-card">
+          <div class="bento-header">
+            <div class="bento-title-icon icon-emerald">
+              <el-icon><DataAnalysis /></el-icon>
+            </div>
+            <div>
+              <h3 class="bento-title">分项能力维度拆解</h3>
+              <p class="bento-subtitle">基于大语言模型结构化评估的四维评分模型</p>
+            </div>
+          </div>
+
+          <div class="sub-score-grid">
+            <div class="sub-score-card">
+              <div class="sub-score-top">
+                <span class="sub-k">技能匹配度</span>
+                <span class="sub-v-badge badge-blue">{{ scoreBreakdown.skill_score }} <small>/ 40</small></span>
+              </div>
+              <el-progress
+                :percentage="(scoreBreakdown.skill_score / 40) * 100"
+                :color="progressColor(scoreBreakdown.skill_score, 40)"
+                :stroke-width="8"
+                :show-text="false"
+              />
+            </div>
+
+            <div class="sub-score-card">
+              <div class="sub-score-top">
+                <span class="sub-k">实战项目经验</span>
+                <span class="sub-v-badge badge-emerald">{{ scoreBreakdown.project_score }} <small>/ 30</small></span>
+              </div>
+              <el-progress
+                :percentage="(scoreBreakdown.project_score / 30) * 100"
+                :color="progressColor(scoreBreakdown.project_score, 30)"
+                :stroke-width="8"
+                :show-text="false"
+              />
+            </div>
+
+            <div class="sub-score-card">
+              <div class="sub-score-top">
+                <span class="sub-k">学历与资历背景</span>
+                <span class="sub-v-badge badge-amber">{{ scoreBreakdown.education_score }} <small>/ 15</small></span>
+              </div>
+              <el-progress
+                :percentage="(scoreBreakdown.education_score / 15) * 100"
+                :color="progressColor(scoreBreakdown.education_score, 15)"
+                :stroke-width="8"
+                :show-text="false"
+              />
+            </div>
+
+            <div class="sub-score-card">
+              <div class="sub-score-top">
+                <span class="sub-k">岗位发展潜力</span>
+                <span class="sub-v-badge badge-purple">{{ scoreBreakdown.potential_score }} <small>/ 15</small></span>
+              </div>
+              <el-progress
+                :percentage="(scoreBreakdown.potential_score / 15) * 100"
+                :color="progressColor(scoreBreakdown.potential_score, 15)"
+                :stroke-width="8"
+                :show-text="false"
+              />
+            </div>
+          </div>
+
+          <div v-if="scoreBreakdown.final_cap != null" class="cap-notice-strip">
+            <el-icon color="#E6A23C"><WarningFilled /></el-icon>
+            <span>原始得分 {{ scoreBreakdown.raw_total }} 分，触发规则硬性封顶，最终有效得分为 {{ scoreBreakdown.final_score }} 分</span>
+          </div>
+        </div>
+
+        <!-- 2. 核心技能对比天平 -->
+        <div class="bento-card">
+          <div class="bento-header">
+            <div class="bento-title-icon icon-indigo">
+              <el-icon><Aim /></el-icon>
+            </div>
+            <div>
+              <h3 class="bento-title">技能天平对照</h3>
+              <p class="bento-subtitle">对比岗位硬性 JD 提取的关键技术栈命中情况</p>
+            </div>
+          </div>
+
+          <div class="skills-balance-grid">
+            <div class="skill-balance-box box-matched">
+              <div class="balance-box-head">
+                <el-icon color="#10b981"><CircleCheckFilled /></el-icon>
+                <span>已匹配技术技能 ({{ (result.result_json.matched_core_skills || []).length }})</span>
+              </div>
               <SkillTagList
                 :items="result.result_json.matched_core_skills || []"
                 type="success"
                 effect="plain"
-                size="large"
+                size="default"
               />
             </div>
-            <div class="skill-col">
-              <h4>
-                <el-icon color="#F56C6C"><CircleCloseFilled /></el-icon>
-                缺失核心技能（{{ (result.result_json.missing_core_skills || []).length }}）
-              </h4>
+
+            <div class="skill-balance-box box-missing">
+              <div class="balance-box-head">
+                <el-icon color="#ef4444"><CircleCloseFilled /></el-icon>
+                <span>缺失或未提及技能 ({{ (result.result_json.missing_core_skills || []).length }})</span>
+              </div>
               <SkillTagList
                 :items="result.result_json.missing_core_skills || []"
                 type="danger"
                 effect="plain"
-                size="large"
+                size="default"
               />
             </div>
           </div>
+
+          <!-- 附加优势点与补充技能 -->
+          <div v-if="(result.result_json.matched_points || []).length > 0" class="sub-tags-row">
+            <div class="sub-tags-label">匹配亮点：</div>
+            <SkillTagList
+              :items="result.result_json.matched_points || []"
+              type="success"
+              effect="plain"
+              size="small"
+            />
+          </div>
         </div>
-      </el-card>
 
-      <!-- ========== 6. 总体评价 ========== -->
-      <el-card shadow="hover" class="section-card">
-        <template #header>
-          <span class="section-title">
-            <el-icon color="#409EFF"><InfoFilled /></el-icon> 总体评价
-          </span>
-        </template>
-        <p class="summary-text">{{ result.result_json.summary }}</p>
-      </el-card>
-
-      <!-- ========== 7. 匹配优势 ========== -->
-      <el-card shadow="hover" class="section-card">
-        <template #header>
-          <span class="section-title">
-            <el-icon color="#67C23A"><CircleCheckFilled /></el-icon> 匹配优势
-          </span>
-        </template>
-        <SkillTagList
-          :items="result.result_json.matched_points || []"
-          type="success"
-          effect="plain"
-          size="large"
-        />
-      </el-card>
-
-      <!-- ========== 8. 缺失技能 ========== -->
-      <el-card shadow="hover" class="section-card">
-        <template #header>
-          <span class="section-title">
-            <el-icon color="#E6A23C"><WarningFilled /></el-icon> 缺失技能
-          </span>
-        </template>
-        <SkillTagList
-          :items="result.result_json.missing_skills || []"
-          type="warning"
-          effect="plain"
-          size="large"
-        />
-      </el-card>
-
-      <!-- ========== 9. 简历优化建议 ========== -->
-      <el-card shadow="hover" class="section-card">
-        <template #header>
-          <span class="section-title">
-            <el-icon color="#F56C6C"><Edit /></el-icon> 简历优化建议
-          </span>
-        </template>
-        <ul class="suggestion-list">
-          <li
-            v-for="(item, index) in result.result_json.resume_suggestions"
-            :key="index"
-          >
-            <el-icon color="#409EFF"><Star /></el-icon>
-            {{ item }}
-          </li>
-        </ul>
-      </el-card>
-
-      <!-- ========== 10. 面试问题 ========== -->
-      <el-card shadow="hover" class="section-card">
-        <template #header>
-          <span class="section-title">
-            <el-icon color="#9B59B6"><ChatLineSquare /></el-icon> 为您定制的 20 个高频面试问题
-          </span>
-          <div class="section-subtitle">针对您的简历和所投职位，AI 精心准备的 20 道面试题及参考答案</div>
-        </template>
-        <el-collapse accordion>
-          <el-collapse-item
-            v-for="(item, index) in result.result_json.interview_questions"
-            :key="index"
-            :title="`Q${index + 1}. ${item.question}`"
-            :name="index"
-          >
-            <div class="answer-box">
-              <el-tag type="primary" size="small">参考答案</el-tag>
-              <p>{{ item.answer }}</p>
+        <!-- 3. AI 深度诊断与优化建议 -->
+        <div class="bento-card">
+          <div class="bento-header">
+            <div class="bento-title-icon icon-blue">
+              <el-icon><InfoFilled /></el-icon>
             </div>
-          </el-collapse-item>
-        </el-collapse>
-      </el-card>
+            <div>
+              <h3 class="bento-title">AI 综合诊断与改写建议</h3>
+              <p class="bento-subtitle">针对当前岗位的针对性简历调优策略</p>
+            </div>
+          </div>
 
-      <!-- ========== 操作按钮 ========== -->
-      <div class="result-actions">
-        <el-button type="primary" size="large" @click="$router.push('/upload')">
-          <el-icon><Refresh /></el-icon> 新的分析
-        </el-button>
-        <el-button size="large" @click="$router.push('/history')">
-          <el-icon><Clock /></el-icon> 查看历史
-        </el-button>
-      </div>
+          <!-- 总体评价引言块 -->
+          <div class="summary-quote-box">
+            <p class="summary-quote-text">{{ result.result_json.summary }}</p>
+          </div>
+
+          <!-- 优化建议列表 -->
+          <div v-if="(result.result_json.resume_suggestions || []).length > 0" class="suggestions-wrapper">
+            <h4 class="suggestions-subtitle">
+              <el-icon color="#6366f1"><Edit /></el-icon>
+              <span>关键改写发力点</span>
+            </h4>
+            <div class="suggestion-cards-list">
+              <div
+                v-for="(item, index) in result.result_json.resume_suggestions"
+                :key="index"
+                class="suggestion-item-card"
+              >
+                <div class="sugg-index">{{ index + 1 }}</div>
+                <div class="sugg-content">{{ item }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. 为您定制的 20 道高频面试真题 -->
+        <div class="bento-card interview-section-card">
+          <div class="bento-header">
+            <div class="bento-title-icon icon-purple">
+              <el-icon><ChatLineSquare /></el-icon>
+            </div>
+            <div>
+              <h3 class="bento-title">定制专属高频面试真题</h3>
+              <p class="bento-subtitle">针对您的背景与目标岗位生成的深度技术与业务追问及参考答法</p>
+            </div>
+          </div>
+
+          <el-collapse accordion class="modern-collapse">
+            <el-collapse-item
+              v-for="(item, index) in result.result_json.interview_questions"
+              :key="index"
+              :name="index"
+              class="modern-collapse-item"
+            >
+              <template #title>
+                <div class="collapse-title-row">
+                  <span class="q-badge">Q{{ index + 1 }}</span>
+                  <span class="q-text">{{ item.question }}</span>
+                </div>
+              </template>
+              <div class="modern-answer-box">
+                <div class="answer-badge">
+                  <span>💡 推荐作答要点与思路</span>
+                </div>
+                <p class="answer-desc">{{ item.answer }}</p>
+              </div>
+            </el-collapse-item>
+          </el-collapse>
+        </div>
+      </main>
     </div>
 
     <!-- 加载状态 -->
-    <div v-else-if="loading" class="loading-state">
-      <el-result icon="loading" title="加载分析结果中..." />
+    <div v-else-if="loading" class="state-container">
+      <el-result icon="loading" title="正在生成深度匹配画像..." sub-title="多维雷达图与建议正在计算中，请稍候" />
     </div>
 
     <!-- 错误状态 -->
-    <div v-else class="error-state">
-      <el-result icon="error" title="未找到分析结果" sub-title="请先上传简历并开始分析">
+    <div v-else class="state-container">
+      <el-result icon="error" title="未找到有效分析报告" sub-title="未检测到当前岗位的分析数据，请重新上传简历发起分析">
         <template #extra>
-          <el-button type="primary" @click="$router.push('/upload')">
-            前往上传简历
+          <el-button type="primary" class="dock-btn-primary" @click="$router.push('/upload')">
+            立即开始新分析
           </el-button>
         </template>
       </el-result>
@@ -350,28 +397,28 @@ onMounted(async () => {
 /** 评分对应的颜色 */
 const scoreColor = computed(() => {
   const score = result.value?.result_json?.match_score || 0
-  if (score >= 80) return '#67C23A'
-  if (score >= 60) return '#E6A23C'
-  if (score >= 40) return '#E6A23C'
-  return '#F56C6C'
+  if (score >= 80) return '#10b981'
+  if (score >= 60) return '#3b82f6'
+  if (score >= 40) return '#f59e0b'
+  return '#ef4444'
 })
 
 /** 评分标签 */
 const scoreLabel = computed(() => {
   const score = result.value?.result_json?.match_score || 0
-  if (score >= 80) return '匹配度高，建议投递！'
-  if (score >= 60) return '匹配度中等，可尝试'
-  if (score >= 40) return '匹配度偏低，需提升'
-  return '匹配度很低，不推荐'
+  if (score >= 80) return '匹配度高，强烈推荐投递！'
+  if (score >= 60) return '匹配度良好，推荐投递'
+  if (score >= 40) return '匹配度中等，建议针对性优化'
+  return '匹配度偏低，需谨慎投递'
 })
 
 /** 评分等级标签类型 */
 const scoreLevelType = computed(() => {
   const level = result.value?.result_json?.score_level || ''
-  if (level === '高度匹配' || level === '良好匹配') return 'success'
+  if (level.includes('推荐') || level === '高度匹配' || level === '良好匹配') return 'success'
   if (level === '部分匹配') return 'warning'
   if (level === '勉强匹配') return 'danger'
-  return 'info'
+  return 'primary'
 })
 
 /** 分项评分数据 */
@@ -390,248 +437,578 @@ const scoreBreakdown = computed(() => {
 /** 核心技能命中率颜色 */
 const hitRateColor = computed(() => {
   const rate = (result.value?.result_json?.core_skill_hit_rate || 0) * 100
-  if (rate >= 70) return '#67C23A'
-  if (rate >= 40) return '#E6A23C'
-  return '#F56C6C'
+  if (rate >= 70) return '#10b981'
+  if (rate >= 40) return '#3b82f6'
+  return '#f59e0b'
 })
 
 /** 进度条颜色 */
 function progressColor(score, max) {
   const rate = score / max
-  if (rate >= 0.7) return '#67C23A'
-  if (rate >= 0.4) return '#E6A23C'
-  return '#F56C6C'
+  if (rate >= 0.75) return '#10b981'
+  if (rate >= 0.5) return '#3b82f6'
+  if (rate >= 0.3) return '#f59e0b'
+  return '#ef4444'
 }
 </script>
 
 <style scoped>
 .result-page {
-  padding: 10px 0;
+  padding: 6px 0 40px;
 }
 
-.steps {
-  margin-bottom: 30px;
+.result-steps {
+  max-width: 650px;
+  margin: 0 auto 28px;
 }
 
-.result-content {
-  max-width: 850px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+/* Bento 双栏总布局 */
+.result-bento-layout {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 24px;
+  align-items: start;
 }
 
-/* ========== 分数仪表盘 ========== */
-.score-dashboard {
-  border-radius: 12px;
+/* 通用现代化 Bento 卡片 */
+.bento-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px 22px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.dashboard-body {
+.bento-card:hover {
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.05);
+}
+
+.bento-header {
   display: flex;
   align-items: center;
-  gap: 30px;
-  padding: 10px 0;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
-.dashboard-left {
+.bento-title-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
   flex-shrink: 0;
 }
 
-.score-number {
-  font-size: 48px;
+.icon-blue { background: #eff6ff; color: #2563eb; }
+.icon-purple { background: #f5f3ff; color: #7c3aed; }
+.icon-emerald { background: #ecfdf5; color: #059669; }
+.icon-indigo { background: #eef2ff; color: #4f46e5; }
+
+.bento-title {
+  font-size: 16px;
   font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.2px;
+}
+
+.bento-subtitle {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* ================= 左栏：Sticky 概览 ================= */
+.result-sidebar {
+  position: sticky;
+  top: 84px;
+  display: flex;
+  flex-direction: column;
+}
+
+.score-hero-card {
+  text-align: center;
+  padding: 28px 20px 24px;
+}
+
+.score-ring-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.score-text-inner {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+}
+
+.score-val {
+  font-size: 42px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -1px;
 }
 
 .score-unit {
-  font-size: 16px;
-  color: #999;
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 600;
+  margin-left: 2px;
 }
 
-.dashboard-right {
-  flex: 1;
-}
-
-.score-level-tag {
+.score-badge-wrap {
   margin-bottom: 10px;
 }
 
-.recommendation-text {
-  font-size: 15px;
-  color: #555;
-  line-height: 1.7;
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-}
-
-.dashboard-meta {
-  margin-top: 10px;
+.score-status-badge {
   font-size: 13px;
-  color: #999;
+  padding: 4px 16px;
+  font-weight: 600;
 }
 
-/* ========== 分项评分 ========== */
+.score-summary-advice {
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.55;
+  margin-bottom: 16px;
+}
+
+.job-target-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  color: #334155;
+  font-weight: 600;
+  max-width: 100%;
+}
+
+.job-title-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 岗位方向对齐 */
+.direction-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.direction-cell {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dir-k {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.dir-v {
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dir-v-primary { color: #2563eb; }
+.dir-v-warning { color: #d97706; }
+
+.direction-verdict-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 10px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.verdict-label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.verdict-tag {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 6px;
+}
+
+.tag-match {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.tag-mismatch {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.verdict-reason {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+/* 命中率卡片 */
+.hit-rate-bar-wrap {
+  margin: 12px 0 16px;
+}
+
+.hit-rate-counts {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.hit-count-pill {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+
+.pill-success {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.pill-danger {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.dot-green { background: #10b981; }
+.dot-red { background: #ef4444; }
+
+/* 快捷操作坞 */
+.action-dock-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+}
+
+.dock-btn-primary {
+  width: 100%;
+  height: 40px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #4f46e5 0%, #2563eb 100%) !important;
+  border: none !important;
+  color: #fff !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  margin-left: 0 !important;
+}
+
+.dock-btn-secondary {
+  width: 100%;
+  height: 40px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #334155 !important;
+  margin-left: 0 !important;
+}
+
+.dock-btn-secondary:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+/* ================= 右侧：多维能力画像与深度矩阵 ================= */
+.result-main-col {
+  min-width: 0;
+}
+
+.alert-block {
+  margin-bottom: 20px;
+}
+
+.alert-list {
+  padding-left: 18px;
+  margin: 4px 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* 分项评分网格 */
 .sub-score-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  gap: 14px;
 }
 
-.sub-score-item {
-  padding: 10px 0;
+.sub-score-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.sub-score-header {
+.sub-score-top {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 8px;
-  font-size: 14px;
-  color: #555;
+  align-items: center;
 }
 
-.sub-score-value {
+.sub-k {
+  font-size: 13px;
   font-weight: 600;
-  color: #333;
+  color: #334155;
 }
 
-.cap-notice {
-  margin-top: 16px;
+.sub-v-badge {
+  font-size: 13px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.badge-blue { background: #eff6ff; color: #2563eb; }
+.badge-emerald { background: #ecfdf5; color: #059669; }
+.badge-amber { background: #fffbeb; color: #d97706; }
+.badge-purple { background: #f5f3ff; color: #7c3aed; }
+
+.cap-notice-strip {
+  margin-top: 14px;
   padding: 10px 14px;
-  background: #fdf6ec;
-  border-radius: 8px;
-  font-size: 14px;
-  color: #E6A23C;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* ========== 核心技能命中率 ========== */
-.hit-rate-section {
-  padding: 10px 0;
-}
-
-.hit-rate-bar {
-  margin-bottom: 20px;
-  text-align: center;
-}
-
-.hit-rate-text {
-  font-size: 20px;
-  font-weight: 700;
-}
-
-.skill-compare {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
-
-.skill-col h4 {
-  font-size: 14px;
-  color: #555;
-  margin-bottom: 10px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* ========== 通用卡片 ========== */
-.section-card {
-  border-radius: 12px;
-}
-
-.section-title {
-  font-size: 17px;
-  font-weight: 600;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  font-size: 12px;
+  color: #b45309;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.section-subtitle {
-  font-size: 13px;
-  color: #909399;
-  margin-top: 6px;
+/* 技能天平对照 */
+.skills-balance-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 14px;
 }
 
-.summary-text {
-  font-size: 15px;
-  line-height: 1.8;
-  color: #555;
+.skill-balance-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px;
 }
 
-.tag-list {
+.balance-box-head {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 12px;
+}
+
+.sub-tags-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px dashed #e2e8f0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.sub-tags-label {
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+/* AI 综合诊断与改写建议 */
+.summary-quote-box {
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  border-left: 4px solid #3b82f6;
+  border-radius: 0 12px 12px 0;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+
+.summary-quote-text {
+  font-size: 14px;
+  line-height: 1.75;
+  color: #334155;
+}
+
+.suggestions-subtitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 12px;
+}
+
+.suggestion-cards-list {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
 }
 
-.tag-list .el-tag {
-  font-size: 14px;
-  padding: 6px 16px;
-  border-radius: 8px;
-}
-
-.empty-hint {
-  color: #c0c4cc;
-  font-size: 14px;
-}
-
-.suggestion-list {
-  list-style: none;
-  padding: 0;
-}
-
-.suggestion-list li {
+.suggestion-item-card {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  padding: 10px 0;
-  font-size: 14px;
-  line-height: 1.7;
-  color: #555;
-  border-bottom: 1px dashed #ebeef5;
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
-.suggestion-list li:last-child {
+.sugg-index {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.sugg-content {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #334155;
+}
+
+/* 定制面试题现代折叠面板 */
+.modern-collapse {
+  border: none;
+}
+
+:deep(.el-collapse-item__header) {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  padding: 14px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+:deep(.el-collapse-item__header:hover) {
+  background: #f8fafc;
+}
+
+:deep(.el-collapse-item__wrap) {
   border-bottom: none;
 }
 
-.answer-box {
-  padding: 12px 16px;
-  background: #f8f9ff;
-  border-radius: 8px;
+.collapse-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.answer-box p {
-  margin-top: 8px;
-  font-size: 14px;
-  line-height: 1.8;
-  color: #555;
+.q-badge {
+  font-size: 12px;
+  font-weight: 800;
+  color: #7c3aed;
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  padding: 2px 7px;
+  border-radius: 6px;
+  flex-shrink: 0;
 }
 
-/* ========== Alert 样式 ========== */
-.alert-list {
-  margin: 4px 0;
-  padding-left: 20px;
+.q-text {
+  font-weight: 600;
+  color: #1e293b;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.alert-list li {
+.modern-answer-box {
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  margin: 8px 0 12px;
+}
+
+.answer-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #2563eb;
+  margin-bottom: 8px;
+}
+
+.answer-desc {
   font-size: 13px;
   line-height: 1.7;
+  color: #334155;
+  white-space: pre-line;
 }
 
-/* ========== 底部按钮 ========== */
-.result-actions {
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-  padding: 10px 0 30px;
-}
-
-.loading-state,
-.error-state {
+.state-container {
   padding: 60px 0;
+}
+
+@media (max-width: 960px) {
+  .result-bento-layout {
+    grid-template-columns: 1fr;
+  }
+  .result-sidebar {
+    position: static;
+  }
 }
 </style>

@@ -128,14 +128,15 @@
         <el-button
           type="warning"
           plain
+          class="btn-test"
           :loading="testing"
           @click="handleTestConnection"
         >
           ⚡ 测试连通性
         </el-button>
         <div class="right-buttons">
-          <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" :loading="saving" @click="handleSave">
+          <el-button class="btn-cancel" @click="dialogVisible = false">取消</el-button>
+          <el-button type="primary" class="btn-save" :loading="saving" @click="handleSave">
             保存并立即生效
           </el-button>
         </div>
@@ -375,18 +376,60 @@ watch(
 
 <style scoped>
 .status-banner {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+}
+
+:deep(.el-alert) {
+  border-radius: 12px;
+  border: 1px solid transparent;
+}
+
+:deep(.el-alert--success) {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+:deep(.el-alert--warning) {
+  background: #fffbeb;
+  border-color: #fde68a;
 }
 
 .settings-form {
-  padding-right: 12px;
+  padding-right: 8px;
+}
+
+:deep(.el-form-item) {
+  margin-bottom: 20px;
+}
+
+:deep(.el-form-item__label) {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+:deep(.el-input__wrapper),
+:deep(.el-select__wrapper) {
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px #cbd5e1 inset;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:deep(.el-input__wrapper:hover),
+:deep(.el-select__wrapper:hover) {
+  box-shadow: 0 0 0 1px #94a3b8 inset;
+}
+
+:deep(.el-input__wrapper.is-focus),
+:deep(.el-select__wrapper.is-focused) {
+  box-shadow: 0 0 0 2px #3b82f6 inset !important;
 }
 
 .field-tip {
   font-size: 12px;
-  color: #909399;
+  color: #64748b;
   line-height: 1.5;
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 .provider-option {
@@ -397,13 +440,13 @@ watch(
 }
 
 .provider-name {
-  font-weight: 500;
-  color: #303133;
+  font-weight: 600;
+  color: #1e293b;
 }
 
 .provider-desc {
   font-size: 11px;
-  color: #909399;
+  color: #94a3b8;
 }
 
 .test-feedback-box {
@@ -415,10 +458,37 @@ watch(
   justify-content: space-between;
   align-items: center;
   width: 100%;
+  padding-top: 8px;
+}
+
+.btn-test {
+  border-radius: 10px;
+  font-weight: 600;
+  height: 38px;
 }
 
 .right-buttons {
   display: flex;
-  gap: 10px;
+  gap: 12px;
+}
+
+.btn-cancel {
+  border-radius: 10px;
+  height: 38px;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+.btn-save {
+  border-radius: 10px;
+  height: 38px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #4f46e5 0%, #2563eb 100%) !important;
+  border: none !important;
+  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.25);
+}
+
+.btn-save:hover {
+  box-shadow: 0 5px 16px rgba(37, 99, 235, 0.35);
 }
 </style>
