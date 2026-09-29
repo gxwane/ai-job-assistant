@@ -21,10 +21,12 @@ export function createPanel(callbacks = {}) {
   panel.innerHTML = `
     <div class="ai-panel-container">
       <div class="ai-panel-header" id="ai-panel-header">
-        <div class="ai-panel-logo">✦</div>
-        <div class="ai-panel-title-wrap">
-          <span class="ai-panel-title">AI 求职助手</span>
-          <span class="ai-panel-badge">智能辅助</span>
+        <div class="ai-panel-header-left">
+          <div class="ai-panel-logo">✦</div>
+          <div class="ai-panel-title-wrap">
+            <span class="ai-panel-title">AI 求职助手</span>
+            <span class="ai-panel-badge">PRO</span>
+          </div>
         </div>
         <div class="ai-header-actions">
           <button class="ai-panel-toggle" id="ai-panel-toggle" title="折叠/展开">−</button>
@@ -32,10 +34,10 @@ export function createPanel(callbacks = {}) {
         </div>
       </div>
       <div class="ai-panel-body ai-panel-expandable" id="ai-panel-body">
-        <!-- 简历区域 -->
-        <div class="ai-resume-section">
-          <div class="ai-resume-header">
-            <span>匹配基准简历</span>
+        <!-- 简历区域 Bento Card -->
+        <div class="ai-card ai-resume-card-wrap">
+          <div class="ai-card-header">
+            <span class="ai-card-title-small">匹配基准简历</span>
             <span class="ai-resume-status" id="ai-resume-status">已就绪</span>
           </div>
           <div class="ai-resume-card">
@@ -44,14 +46,16 @@ export function createPanel(callbacks = {}) {
               <span class="ai-resume-name" id="ai-resume-name">未选择简历</span>
             </div>
             <input type="file" id="ai-resume-file" accept=".pdf,.docx,.doc,.txt" style="display:none;">
-            <button class="ai-btn-upload" id="ai-btn-upload" title="上传或更换匹配简历">更换简历</button>
+            <button class="ai-btn-upload" id="ai-btn-upload" title="上传或更换匹配简历">更换</button>
           </div>
         </div>
 
-        <!-- 自动筛选区域 -->
-        <div class="ai-scan-section">
-          <div class="ai-scan-divider"></div>
-          <div class="ai-scan-title">本页自动筛选岗位</div>
+        <!-- 自动筛选区域 Bento Card -->
+        <div class="ai-card ai-scan-card-wrap">
+          <div class="ai-card-header">
+            <span class="ai-card-title-small">本页自动初筛策略</span>
+            <span class="ai-badge-soft">智能防封</span>
+          </div>
 
           <!-- 预设选择器 -->
           <div class="ai-preset-tabs" id="ai-scan-presets">
@@ -103,11 +107,11 @@ export function createPanel(callbacks = {}) {
             <div class="ai-scan-row ai-scan-switch-row">
               <label class="ai-scan-switch">
                 <input type="checkbox" id="ai-scan-auto-comm">
-                自动初次沟通
+                <span class="ai-switch-text">自动初次沟通 / 打招呼</span>
               </label>
             </div>
             <div class="ai-scan-row">
-              <label class="ai-scan-label">HR要求</label>
+              <label class="ai-scan-label">HR 活跃要求</label>
               <select class="ai-scan-select" id="ai-scan-hr-req">
                 <option value="online">仅在线</option>
                 <option value="3days">3日内活跃</option>
@@ -118,16 +122,21 @@ export function createPanel(callbacks = {}) {
             </div>
           </div>
 
-          <div class="ai-scan-btns">
-            <button class="ai-scan-btn ai-scan-btn-start" id="ai-start-auto-scan">开始自动筛选</button>
-            <button class="ai-scan-btn ai-scan-btn-pause" id="ai-btn-scan-pause" disabled>暂停</button>
-            <button class="ai-scan-btn ai-scan-btn-continue" id="ai-btn-scan-continue" disabled>继续</button>
-            <button class="ai-scan-btn ai-scan-btn-stop" id="ai-btn-scan-stop" disabled>停止</button>
+          <!-- 现代主次控制坞 -->
+          <div class="ai-scan-actions-wrap">
+            <button class="ai-scan-btn ai-scan-btn-start" id="ai-start-auto-scan">
+              <span class="ai-btn-play-icon">▶</span> 开始自动筛选
+            </button>
+            <div class="ai-scan-sub-btns">
+              <button class="ai-scan-btn ai-scan-btn-pause" id="ai-btn-scan-pause" disabled>⏸ 暂停</button>
+              <button class="ai-scan-btn ai-scan-btn-continue" id="ai-btn-scan-continue" disabled>▶ 继续</button>
+              <button class="ai-scan-btn ai-scan-btn-stop" id="ai-btn-scan-stop" disabled>⏹ 停止</button>
+            </div>
           </div>
           <div class="ai-scan-resume-row">
             <label class="ai-scan-switch">
               <input type="checkbox" id="ai-scan-resume-check" checked>
-              继续上次进度
+              <span>继续上次进度</span>
             </label>
             <button class="ai-scan-btn-reset" id="ai-btn-scan-reset">重置进度</button>
           </div>
@@ -145,17 +154,21 @@ export function createPanel(callbacks = {}) {
           </div>
         </div>
 
-        <div class="ai-capture-box">
-          <p class="ai-panel-hint">将当前打开的岗位发送至后台分析匹配度</p>
+        <!-- 当前打开岗位即时诊断卡片 -->
+        <div class="ai-card ai-capture-card">
+          <div class="ai-capture-info">
+            <div class="ai-capture-title">当前岗位即时诊断</div>
+            <div class="ai-capture-desc">一键将当前职位发送至 AI 深度画像</div>
+          </div>
           <button class="ai-panel-btn ai-btn-primary" id="ai-btn-capture">
-            <span class="ai-btn-icon">⚡</span> 发送当前岗位到 AI 助手
+            <span class="ai-btn-icon">⚡</span> 即时诊断
           </button>
         </div>
         <div id="ai-panel-result" style="display:none;"></div>
       </div>
       <div class="ai-panel-footer">
         <span class="ai-panel-version">AI求职助手 · 智能伴侣</span>
-        <a href="http://127.0.0.1:8000" target="_blank">打开控制台 ↗</a>
+        <a href="http://127.0.0.1:8000" target="_blank" class="ai-panel-link">打开控制台 ↗</a>
       </div>
     </div>
   `;

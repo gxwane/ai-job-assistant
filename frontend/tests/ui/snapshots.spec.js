@@ -187,15 +187,16 @@ test.describe('AI-Job-Assistant 全栈 UI 高保真视觉评测套件', () => {
     await page.waitForSelector('#ai-job-assistant-panel', { timeout: 5000 });
     await page.waitForTimeout(800);
 
-    // 截图展开状态
-    await page.screenshot({ path: path.join(SNAPSHOT_DIR, '10_extension_floating_expanded.png'), fullPage: true });
+    // 截图展开状态 (全屏视口与浮窗特写)
+    await page.screenshot({ path: path.join(SNAPSHOT_DIR, '10_extension_floating_expanded.png') });
+    await page.locator('#ai-job-assistant-panel').screenshot({ path: path.join(SNAPSHOT_DIR, '10_extension_floating_panel_detail.png') });
 
     // 点击缩小按钮测试折叠态
     const toggleBtn = page.locator('#ai-panel-toggle');
     if (await toggleBtn.count() > 0) {
       await toggleBtn.click();
       await page.waitForTimeout(400);
-      await page.screenshot({ path: path.join(SNAPSHOT_DIR, '11_extension_floating_collapsed.png'), fullPage: true });
+      await page.screenshot({ path: path.join(SNAPSHOT_DIR, '11_extension_floating_collapsed.png') });
     }
   });
 
