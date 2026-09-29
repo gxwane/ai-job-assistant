@@ -1,26 +1,53 @@
 <template>
   <!-- 简历上传页 -->
   <div class="upload-page">
-    <el-steps :active="currentStep" align-center class="steps">
-      <el-step title="上传简历" />
-      <el-step title="岗位分析" />
-      <el-step title="查看结果" />
-    </el-steps>
+    <!-- 流程指示器胶囊 -->
+    <div class="stepper-capsule">
+      <el-steps :active="currentStep" align-center class="modern-steps">
+        <el-step title="上传简历" />
+        <el-step title="岗位分析" />
+        <el-step title="深度画像与报告" />
+      </el-steps>
+    </div>
 
-    <el-card class="upload-card" shadow="hover">
+    <el-card class="upload-card modern-card" shadow="never">
       <template #header>
         <div class="card-header">
-          <span class="card-title">
-            <el-icon><Upload /></el-icon> 上传简历
-          </span>
-          <span class="card-tip">支持 PDF 和 Word 格式</span>
+          <div class="header-title-box">
+            <div class="header-icon-box">
+              <el-icon :size="18"><Upload /></el-icon>
+            </div>
+            <div>
+              <div class="card-title">上传求职简历</div>
+              <div class="card-subtitle">支持 PDF / Word (.docx) 格式，文本本地安全解析</div>
+            </div>
+          </div>
+          <el-tag type="info" size="small" effect="plain" round class="privacy-badge">
+            <el-icon><CircleCheckFilled /></el-icon> 纯本地隐私安全
+          </el-tag>
         </div>
       </template>
+
+      <!-- 快速复用现有简历提示（若已存在上下文） -->
+      <div v-if="store.currentResume && !uploadedResume && !selectedFile" class="resume-reuse-card">
+        <div class="reuse-left">
+          <div class="resume-file-icon">
+            <el-icon :size="20"><Document /></el-icon>
+          </div>
+          <div class="resume-meta">
+            <div class="resume-filename">{{ store.currentResume.filename || '已载入的历史简历' }}</div>
+            <div class="resume-sub">已载入系统上下文，可直接用于多岗位快速比对</div>
+          </div>
+        </div>
+        <el-button type="primary" plain class="reuse-action-btn" @click="goAnalyze">
+          直接使用此简历 <el-icon><ArrowRight /></el-icon>
+        </el-button>
+      </div>
 
       <!-- 上传区域 -->
       <el-upload
         ref="uploadRef"
-        class="upload-area"
+        class="upload-area modern-upload-dropzone"
         drag
         :auto-upload="false"
         :limit="1"
@@ -28,40 +55,58 @@
         :on-remove="handleRemove"
         :accept="'.pdf,.docx'"
       >
-        <el-icon class="upload-icon" :size="60"><UploadFilled /></el-icon>
+        <div class="upload-icon-circle">
+          <el-icon :size="32"><UploadFilled /></el-icon>
+        </div>
         <div class="upload-text">
-          <p>将简历文件拖拽到此处，或 <em>点击上传</em></p>
-          <p class="upload-hint">支持 .pdf / .docx 格式</p>
+          <p class="upload-primary-text">将简历拖拽到此处，或 <em>点击浏览本地文件</em></p>
+          <div class="upload-format-chips">
+            <span class="format-chip">.PDF</span>
+            <span class="format-chip">.DOCX</span>
+            <span class="format-tip">单文件大小建议不超过 10MB</span>
+          </div>
         </div>
       </el-upload>
 
-      <!-- 上传按钮和进度 -->
+      <!-- 上传按钮和流程控制 -->
       <div class="upload-actions">
         <el-button
           type="primary"
           size="large"
+          class="modern-submit-btn"
           :loading="uploading"
           :disabled="!selectedFile"
           @click="handleUpload"
         >
-          {{ uploading ? '解析中...' : '上传并解析' }}
+          <el-icon v-if="!uploading"><MagicStick /></el-icon>
+          {{ uploading ? '智能解析中...' : '上传并解析' }}
         </el-button>
-        <el-button size="large" :disabled="!uploadedResume" @click="goAnalyze">
-          下一步
+        <el-button
+          size="large"
+          class="modern-ghost-btn"
+          :disabled="!uploadedResume && !store.currentResume"
+          @click="goAnalyze"
+        >
+          下一步：岗位分析
           <el-icon><ArrowRight /></el-icon>
         </el-button>
       </div>
 
       <!-- 解析结果预览 -->
       <div v-if="uploadedResume" class="preview-section">
-        <el-alert title="简历解析成功" type="success" :closable="false" show-icon />
-        <div class="preview-text">
-          <h4>简历文本预览：</h4>
+        <div class="preview-header">
+          <div class="status-ready-pill">
+            <span class="dot-green"></span>
+            <span>简历文本提取成功 (共 {{ uploadedResume.content?.length || 0 }} 字符)</span>
+          </div>
+        </div>
+        <div class="preview-textarea-wrap">
           <el-input
             type="textarea"
-            :rows="10"
+            :rows="9"
             :model-value="uploadedResume.content"
             readonly
+            class="modern-preview-textarea"
           />
         </div>
       </div>
@@ -120,17 +165,43 @@ function goAnalyze() {
 
 <style scoped>
 .upload-page {
-  padding: 10px 0;
+  padding: 16px 0 40px;
 }
 
-.steps {
-  margin-bottom: 30px;
+/* 现代化居中胶囊步骤器 */
+.stepper-capsule {
+  max-width: 640px;
+  margin: 0 auto 32px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 9999px;
+  padding: 14px 36px;
+  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.04);
+}
+
+.modern-steps :deep(.el-step__title) {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.modern-steps :deep(.el-step__title.is-process),
+.modern-steps :deep(.el-step__head.is-process) {
+  color: #4f46e5;
+  border-color: #4f46e5;
+}
+
+.modern-steps :deep(.el-step__head.is-process .el-step__icon) {
+  background: #e0e7ff;
+  color: #4f46e5;
 }
 
 .upload-card {
-  max-width: 700px;
+  max-width: 720px;
   margin: 0 auto;
-  border-radius: 12px;
+  border-radius: 18px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.05);
 }
 
 .card-header {
@@ -139,58 +210,233 @@ function goAnalyze() {
   align-items: center;
 }
 
-.card-title {
-  font-size: 18px;
-  font-weight: 600;
+.header-title-box {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
-.card-tip {
-  color: #999;
+.header-icon-box {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #eef2ff;
+  color: #4f46e5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.card-subtitle {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.privacy-badge {
+  font-size: 12px;
+  border-color: #e2e8f0;
+  color: #475569;
+}
+
+/* 现有简历复用卡 */
+.resume-reuse-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+}
+
+.reuse-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.resume-file-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #e0e7ff;
+  color: #4f46e5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.resume-filename {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.resume-sub {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.reuse-action-btn {
   font-size: 13px;
+  font-weight: 500;
 }
 
-.upload-area {
-  width: 100%;
+/* 现代化上传拖拽区域 */
+.modern-upload-dropzone :deep(.el-upload-dragger) {
+  padding: 40px 20px;
+  border-radius: 16px;
+  border: 2px dashed #cbd5e1;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  transition: all 0.25s ease;
 }
 
-.upload-icon {
-  color: #c0c4cc;
+.modern-upload-dropzone :deep(.el-upload-dragger:hover) {
+  border-color: #6366f1;
+  background: #eef2ff;
 }
 
-.upload-text p {
-  margin-top: 12px;
-  color: #606266;
+.upload-icon-circle {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background: #e0e7ff;
+  color: #4f46e5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.15);
+  transition: transform 0.2s ease;
+}
+
+.modern-upload-dropzone :deep(.el-upload-dragger:hover) .upload-icon-circle {
+  transform: translateY(-2px) scale(1.05);
+}
+
+.upload-primary-text {
   font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 8px;
 }
 
-.upload-text em {
-  color: #409EFF;
+.upload-primary-text em {
+  color: #4f46e5;
   font-style: normal;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
-.upload-hint {
-  font-size: 12px !important;
-  color: #c0c4cc !important;
+.upload-format-chips {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 10px;
 }
 
+.format-chip {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.format-tip {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-left: 4px;
+}
+
+/* 底部操作区 */
 .upload-actions {
   display: flex;
   justify-content: center;
   gap: 16px;
-  margin-top: 24px;
+  margin-top: 28px;
 }
 
+.modern-submit-btn {
+  background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%) !important;
+  border: none !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  padding: 12px 28px !important;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25) !important;
+  transition: all 0.2s ease !important;
+}
+
+.modern-submit-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.35) !important;
+}
+
+.modern-ghost-btn {
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  padding: 12px 24px !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+}
+
+.modern-ghost-btn:hover {
+  border-color: #4f46e5 !important;
+  color: #4f46e5 !important;
+}
+
+/* 预览部分 */
 .preview-section {
-  margin-top: 24px;
+  margin-top: 28px;
   padding-top: 20px;
-  border-top: 1px solid #ebeef5;
+  border-top: 1px solid #f1f5f9;
 }
 
-.preview-section h4 {
-  margin: 16px 0 8px;
-  color: #333;
+.preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.status-ready-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #166534;
+}
+
+.dot-green {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+}
+
+.modern-preview-textarea :deep(.el-textarea__inner) {
+  background: #f8fafc;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #334155;
+  border-color: #e2e8f0;
 }
 </style>
