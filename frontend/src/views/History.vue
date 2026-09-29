@@ -58,9 +58,10 @@
           :data="records"
           stripe
           style="width: 100%"
+          class="modern-history-table"
           @selection-change="onSelectionChange"
         >
-          <el-table-column type="selection" width="45" />
+          <el-table-column type="selection" width="40" align="center" />
           <el-table-column label="岗位名称" min-width="180">
             <template #default="{ row }">
               <span class="job-title-link" @click="showDetail(row.id)">{{ row.job_title }}</span>
@@ -68,7 +69,7 @@
           </el-table-column>
           <el-table-column label="匹配分数" width="130" align="center">
             <template #default="{ row }">
-              <ScoreBadge :score="row.match_score" size="large" />
+              <ScoreBadge :score="row.match_score" size="small" />
             </template>
           </el-table-column>
           <el-table-column label="分析时间" width="170" align="center">
@@ -76,12 +77,13 @@
               <span class="time-text">{{ formatDate(row.created_at) }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="180" align="center" fixed="right">
+          <el-table-column label="操作" width="180" align="center">
             <template #default="{ row }">
               <el-button
                 type="primary"
                 size="small"
                 link
+                class="history-op-btn"
                 @click="showDetail(row.id)"
               >
                 <el-icon><View /></el-icon>
@@ -91,6 +93,7 @@
                 type="danger"
                 size="small"
                 link
+                class="history-op-btn"
                 @click.stop="confirmSingleDelete(row)"
               >
                 <el-icon><Delete /></el-icon>

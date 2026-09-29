@@ -89,107 +89,115 @@
           :data="records"
           stripe
           style="width: 100%"
+          class="modern-jobs-table"
           @selection-change="onSelectionChange"
         >
-          <el-table-column type="selection" width="45" />
-          <el-table-column label="岗位名称" min-width="180" show-overflow-tooltip>
+          <el-table-column type="selection" width="40" align="center" />
+          <el-table-column label="岗位名称" min-width="150" show-overflow-tooltip>
             <template #default="{ row }">
               <span class="job-title-link" @click="showDetail(row.id)">{{ row.job_title }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="公司" width="140" show-overflow-tooltip>
+          <el-table-column label="公司" width="120" show-overflow-tooltip>
             <template #default="{ row }">
               {{ row.company || '-' }}
             </template>
           </el-table-column>
-          <el-table-column label="薪资" width="100" align="center">
+          <el-table-column label="薪资" width="85" align="center">
             <template #default="{ row }">
               <span class="salary-text">{{ row.salary || '-' }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="地点" width="80" align="center">
+          <el-table-column label="地点" width="65" align="center">
             <template #default="{ row }">
               {{ row.location || '-' }}
             </template>
           </el-table-column>
-          <el-table-column label="HR状态" width="110" align="center">
+          <el-table-column label="HR状态" width="95" align="center">
             <template #default="{ row }">
               <HRStatusTag :status="row.hr_status" />
             </template>
           </el-table-column>
-          <el-table-column label="匹配分数" width="100" align="center">
+          <el-table-column label="匹配度" width="75" align="center">
             <template #default="{ row }">
-              <ScoreBadge :score="row.match_score" size="large" />
+              <ScoreBadge :score="row.match_score" size="small" />
             </template>
           </el-table-column>
-          <el-table-column label="推荐结论" width="100" align="center">
+          <el-table-column label="推荐结论" width="85" align="center">
             <template #default="{ row }">
               <el-tag
                 v-if="row.score_level"
                 :type="getLevelTagType(row.score_level)"
                 size="small"
+                effect="plain"
               >
                 {{ row.score_level }}
               </el-tag>
               <span v-else>-</span>
             </template>
           </el-table-column>
-          <el-table-column label="状态" width="100" align="center">
+          <el-table-column label="状态" width="80" align="center">
             <template #default="{ row }">
               <el-tag :type="getStatusTagType(row.status)" size="small">
                 {{ statusLabel(row.status) }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="捕获时间" width="160" align="center">
+          <el-table-column label="捕获时间" width="135" align="center">
             <template #default="{ row }">
               <span class="time-text">{{ formatDate(row.created_at) }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="250" align="center" fixed="right">
+          <el-table-column label="操作" width="250" align="center">
             <template #default="{ row }">
-              <el-button type="primary" size="small" link @click="showDetail(row.id)">
-                <el-icon><View /></el-icon> 详情
-              </el-button>
-              <el-button
-                v-if="row.status !== 'communicated'"
-                type="success"
-                size="small"
-                link
-                @click="handleMarkCommunicated(row)"
-              >
-                <el-icon><ChatDotRound /></el-icon> 已沟通
-              </el-button>
-              <el-button
-                v-if="row.status === 'interview'"
-                type="primary"
-                size="small"
-                link
-                @click="$router.push(`/interview-questions/${row.id}`)"
-              >
-                <el-icon><Reading /></el-icon> 面试问答
-              </el-button>
-              <el-button
-                v-if="row.status === 'communicated'"
-                type="success"
-                size="small"
-                link
-                @click="handleMarkInterview(row)"
-              >
-                <el-icon><Trophy /></el-icon> 收到面试
-              </el-button>
-              <el-button
-                v-if="row.status !== 'ignored'"
-                type="warning"
-                size="small"
-                link
-                @click="handleMarkIgnored(row)"
-              >
-                <el-icon><Hide /></el-icon> 忽略
-              </el-button>
-              <el-button type="danger" size="small" link @click="confirmSingleDelete(row)">
-                <el-icon><Delete /></el-icon> 删除
-              </el-button>
+              <div class="op-actions-cell">
+                <el-button type="primary" size="small" link class="op-link-btn" @click="showDetail(row.id)">
+                  <el-icon><View /></el-icon> 详情
+                </el-button>
+                <el-button
+                  v-if="row.status !== 'communicated' && row.status !== 'interview'"
+                  type="success"
+                  size="small"
+                  link
+                  class="op-link-btn"
+                  @click="handleMarkCommunicated(row)"
+                >
+                  <el-icon><ChatDotRound /></el-icon> 已沟通
+                </el-button>
+                <el-button
+                  v-if="row.status === 'interview'"
+                  type="primary"
+                  size="small"
+                  link
+                  class="op-link-btn"
+                  @click="$router.push(`/interview-questions/${row.id}`)"
+                >
+                  <el-icon><Reading /></el-icon> 问答
+                </el-button>
+                <el-button
+                  v-if="row.status === 'communicated'"
+                  type="success"
+                  size="small"
+                  link
+                  class="op-link-btn"
+                  @click="handleMarkInterview(row)"
+                >
+                  <el-icon><Trophy /></el-icon> 面试
+                </el-button>
+                <el-button
+                  v-if="row.status !== 'ignored'"
+                  type="warning"
+                  size="small"
+                  link
+                  class="op-link-btn"
+                  @click="handleMarkIgnored(row)"
+                >
+                  <el-icon><Hide /></el-icon> 忽略
+                </el-button>
+                <el-button type="danger" size="small" link class="op-link-btn" @click="confirmSingleDelete(row)">
+                  <el-icon><Delete /></el-icon> 删除
+                </el-button>
+              </div>
             </template>
           </el-table-column>
         </el-table>
@@ -596,7 +604,7 @@ const parsedDetailTags = computed(() => {
 }
 
 .jobs-card {
-  max-width: 1200px;
+  max-width: 1240px;
   margin: 0 auto;
   border-radius: 12px;
 }
@@ -641,34 +649,56 @@ const parsedDetailTags = computed(() => {
   gap: 8px;
 }
 
+.modern-jobs-table :deep(th.el-table__cell) {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.op-actions-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.op-link-btn {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 4px !important;
+  margin-left: 0 !important;
+}
+
 .empty-state {
   padding: 40px 0;
 }
 
 .job-title-link {
-  color: #409EFF;
+  color: #2563eb;
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .job-title-link:hover {
-  color: #337ECC;
+  color: #1d4ed8;
   text-decoration: underline;
 }
 
 .salary-text {
-  color: #E6A23C;
-  font-weight: 500;
+  color: #d97706;
+  font-weight: 600;
 }
 
 .no-score {
-  color: #c0c4cc;
+  color: #94a3b8;
   font-size: 13px;
 }
 
 .time-text {
-  color: #909399;
-  font-size: 13px;
+  color: #64748b;
+  font-size: 12px;
 }
 
 /* 详情弹窗 */

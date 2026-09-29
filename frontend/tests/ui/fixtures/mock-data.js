@@ -107,7 +107,7 @@ export const mockJobRecords = [
     hr_title: "技术负责人",
     hr_status: "刚刚活跃",
     match_score: 92,
-    status: "已沟通",
+    status: "communicated",
     analysis_status: "completed",
     created_at: "2026-09-29T10:15:00"
   },
@@ -121,7 +121,7 @@ export const mockJobRecords = [
     hr_title: "招聘负责人",
     hr_status: "在线",
     match_score: 84,
-    status: "已投递",
+    status: "interview",
     analysis_status: "completed",
     created_at: "2026-09-29T09:30:00"
   },
@@ -135,7 +135,7 @@ export const mockJobRecords = [
     hr_title: "HRBP",
     hr_status: "今日活跃",
     match_score: 78,
-    status: "未处理",
+    status: "recommended",
     analysis_status: "completed",
     created_at: "2026-09-28T16:20:00"
   },
@@ -149,7 +149,7 @@ export const mockJobRecords = [
     hr_title: "资深猎头",
     hr_status: "3日前活跃",
     match_score: 42,
-    status: "不匹配",
+    status: "ignored",
     analysis_status: "completed",
     created_at: "2026-09-28T14:10:00"
   }
