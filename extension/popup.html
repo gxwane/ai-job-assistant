@@ -2,94 +2,154 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
-  <title>AI求职助手设置</title>
+  <title>AI求职助手 - 防封策略配置</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      width: 320px;
-      padding: 14px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Microsoft YaHei", sans-serif;
+      width: 340px;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
       font-size: 13px;
-      background: #f5f7fa;
-      color: #333;
+      background: #f8fafc;
+      color: #1e293b;
+      -webkit-font-smoothing: antialiased;
     }
-    h3 {
-      font-size: 15px;
-      margin-bottom: 12px;
-      color: #1a73e8;
+
+    /* 顶部标题栏 */
+    .popup-header {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 10px;
+      margin-bottom: 14px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #e2e8f0;
     }
-    .section {
-      background: #fff;
+    .popup-logo {
+      width: 28px;
+      height: 28px;
       border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 10px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 800;
+      box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
+    }
+    .popup-title-wrap {
+      flex: 1;
+    }
+    .popup-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .popup-subtitle {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 1px;
+    }
+
+    /* 模块卡片 */
+    .section {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
     }
     .section-title {
-      font-size: 12px;
-      font-weight: 600;
-      color: #606266;
-      margin-bottom: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
+
+    /* 分段器预设组 (Segmented Control) */
     .preset-group {
       display: flex;
-      gap: 4px;
-      margin-bottom: 6px;
+      background: #f1f5f9;
+      padding: 3px;
+      border-radius: 9px;
+      gap: 3px;
+      margin-bottom: 8px;
+      border: 1px solid #e2e8f0;
     }
     .preset-btn {
       flex: 1;
-      padding: 5px 0;
-      border: 1px solid #dcdfe6;
-      border-radius: 4px;
-      background: #f5f7fa;
-      color: #606266;
+      padding: 6px 0;
+      border: none;
+      border-radius: 7px;
+      background: transparent;
+      color: #64748b;
       font-size: 11px;
+      font-weight: 600;
       cursor: pointer;
       text-align: center;
-      transition: all 0.2s;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .preset-btn:hover { border-color: #409EFF; color: #409EFF; }
+    .preset-btn:hover { color: #3b82f6; }
     .preset-btn.active {
-      background: #409EFF;
-      border-color: #409EFF;
-      color: #fff;
-      font-weight: 600;
+      background: #fff;
+      color: #2563eb;
+      font-weight: 700;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.08);
     }
     .preset-desc {
       font-size: 11px;
-      color: #909399;
-      margin-bottom: 6px;
+      color: #64748b;
       line-height: 1.4;
       min-height: 16px;
+      padding: 0 2px;
     }
+
+    /* 参数表单行 */
     .row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-top: 8px;
+      margin-top: 10px;
       font-size: 12px;
     }
-    .row span { color: #606266; }
+    .row-label {
+      color: #475569;
+      font-weight: 500;
+    }
     .row input[type="number"] {
-      width: 55px;
-      height: 24px;
-      border: 1px solid #dcdfe6;
-      border-radius: 4px;
-      padding: 0 4px;
+      width: 56px;
+      height: 26px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 0 6px;
       text-align: center;
       font-size: 12px;
+      font-weight: 600;
+      color: #1e293b;
+      background: #fff;
+      transition: all 0.2s;
+    }
+    .row input[type="number"]:focus, .row select:focus {
+      outline: none;
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
     }
     .row select {
-      width: 130px;
+      width: 120px;
       height: 26px;
-      border: 1px solid #dcdfe6;
-      border-radius: 4px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
       padding: 0 6px;
-      font-size: 12px;
+      font-size: 11px;
+      font-weight: 500;
       background: #fff;
+      color: #1e293b;
     }
     .delay-inputs {
       display: flex;
@@ -97,57 +157,88 @@
       gap: 4px;
     }
     .delay-inputs input {
-      width: 45px !important;
+      width: 44px !important;
+    }
+    .unit-text {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-left: 3px;
+    }
+
+    .switch-row {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px dashed #e2e8f0;
     }
     .switch-label {
       display: flex;
       align-items: center;
       gap: 6px;
-      font-size: 13px;
+      font-size: 12px;
       cursor: pointer;
-      font-weight: 500;
+      font-weight: 600;
+      color: #334155;
     }
     .hint {
       font-size: 11px;
-      color: #909399;
+      color: #94a3b8;
       margin-top: 4px;
       line-height: 1.4;
+      padding-left: 20px;
     }
-    .save-btn {
-      width: 100%;
-      height: 32px;
-      margin-top: 10px;
-      background: #1a73e8;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .save-btn:hover { background: #1557b0; }
-    .status {
-      font-size: 11px;
-      color: #67C23A;
-      text-align: center;
-      margin-top: 6px;
-      min-height: 16px;
-    }
+
+    /* 安全防线提示条 */
     .safety-tip {
       font-size: 11px;
-      color: #E6A23C;
+      color: #b45309;
+      margin-top: 10px;
+      line-height: 1.5;
+      background: #fffbeb;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid #fde68a;
+    }
+
+    /* 保存按钮与状态 */
+    .save-btn {
+      width: 100%;
+      height: 38px;
+      margin-top: 4px;
+      background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
+    }
+    .save-btn:hover {
+      box-shadow: 0 6px 18px rgba(79, 70, 229, 0.45);
+      transform: translateY(-1px);
+    }
+    .save-btn:active {
+      transform: translateY(0);
+    }
+    .status {
+      font-size: 11px;
+      color: #10b981;
+      font-weight: 600;
+      text-align: center;
       margin-top: 8px;
-      line-height: 1.4;
-      background: #fdf6ec;
-      padding: 6px 8px;
-      border-radius: 4px;
-      border: 1px solid #faecd8;
+      min-height: 16px;
     }
   </style>
 </head>
 <body>
-  <h3>🛡️ AI求职助手 扫描与防封设置</h3>
+  <div class="popup-header">
+    <div class="popup-logo">✦</div>
+    <div class="popup-title-wrap">
+      <div class="popup-title">AI求职助手 · 插件设置</div>
+      <div class="popup-subtitle">防封号保护与智能初筛配置</div>
+    </div>
+  </div>
 
   <div class="section">
     <div class="section-title">防封策略预设</div>
@@ -161,45 +252,49 @@
   </div>
 
   <div class="section">
-    <div class="section-title">参数微调（受安全底线保护）</div>
+    <div class="section-title">
+      <span>参数微调</span>
+      <span style="font-size: 10px; font-weight: normal; color: #10b981;">● 安全底线生效中</span>
+    </div>
     <div class="row">
-      <span>时延范围(秒)：</span>
+      <span class="row-label">时延抖动范围</span>
       <div class="delay-inputs">
         <input type="number" id="minDelay" min="5" max="120" value="12" title="最小延时(≥5s)" />
-        <span>-</span>
+        <span style="color: #94a3b8;">-</span>
         <input type="number" id="maxDelay" min="10" max="300" value="30" title="最大延时(≥10s)" />
+        <span class="unit-text">秒</span>
       </div>
     </div>
     <div class="row">
-      <span>单日沟通上限：</span>
+      <span class="row-label">单日沟通上限</span>
       <div>
         <input type="number" id="dailyLimit" min="0" max="50" value="25" title="单日沟通上限(≤50次)" />
-        <span style="font-size: 11px; color: #999;">次/天</span>
+        <span class="unit-text">次/天</span>
       </div>
     </div>
     <div class="row">
-      <span>匹配阈值：</span>
+      <span class="row-label">匹配合格阈值</span>
       <div>
         <input type="number" id="threshold" min="0" max="100" value="80" />
-        <span style="font-size: 11px; color: #999;">分</span>
+        <span class="unit-text">分</span>
       </div>
     </div>
     <div class="row">
-      <span>单次扫描上限：</span>
+      <span class="row-label">单次扫描上限</span>
       <div>
         <input type="number" id="maxScan" min="1" max="100" value="30" />
-        <span style="font-size: 11px; color: #999;">个</span>
+        <span class="unit-text">个</span>
       </div>
     </div>
     <div class="row">
-      <span>本次沟通上限：</span>
+      <span class="row-label">单次沟通配额</span>
       <div>
         <input type="number" id="maxComm" min="0" max="30" value="5" />
-        <span style="font-size: 11px; color: #999;">个</span>
+        <span class="unit-text">个</span>
       </div>
     </div>
     <div class="row">
-      <span>HR活跃要求：</span>
+      <span class="row-label">HR活跃度要求</span>
       <select id="hrReq">
         <option value="online">仅在线</option>
         <option value="3days">3日内活跃</option>
@@ -208,14 +303,14 @@
         <option value="unlimited">不限制</option>
       </select>
     </div>
-    <div class="row" style="margin-top: 10px;">
+    <div class="switch-row">
       <label class="switch-label">
         <input type="checkbox" id="autoComm" />
         自动发送初次沟通
       </label>
+      <div class="hint">未勾选时仅在页面标记推荐岗位，不主动触发打招呼</div>
     </div>
-    <div class="hint">未勾选时仅在页面标记推荐岗位，不主动触发打招呼</div>
-    <div class="safety-tip">安全提示：最小延迟强制 ≥5s，单日沟通强制 ≤50 次，保护账号免遭风控拦截。</div>
+    <div class="safety-tip">🛡️ 安全底线保护已激活：最小延时锁定 ≥5s，单日沟通硬顶 50 次，阻断批量爬虫特征。</div>
   </div>
 
   <button class="save-btn" id="save">保存并同步设置</button>

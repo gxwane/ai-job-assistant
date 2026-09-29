@@ -21,22 +21,30 @@ export function createPanel(callbacks = {}) {
   panel.innerHTML = `
     <div class="ai-panel-container">
       <div class="ai-panel-header" id="ai-panel-header">
-        <span class="ai-panel-logo">AI</span>
-        <span class="ai-panel-title">AI求职助手</span>
-        <button class="ai-panel-toggle" id="ai-panel-toggle" title="缩小">−</button>
-        <button class="ai-panel-close" id="ai-panel-close">&times;</button>
+        <div class="ai-panel-logo">✦</div>
+        <div class="ai-panel-title-wrap">
+          <span class="ai-panel-title">AI 求职助手</span>
+          <span class="ai-panel-badge">智能辅助</span>
+        </div>
+        <div class="ai-header-actions">
+          <button class="ai-panel-toggle" id="ai-panel-toggle" title="折叠/展开">−</button>
+          <button class="ai-panel-close" id="ai-panel-close" title="关闭">&times;</button>
+        </div>
       </div>
       <div class="ai-panel-body ai-panel-expandable" id="ai-panel-body">
         <!-- 简历区域 -->
         <div class="ai-resume-section">
-          <div class="ai-resume-header">用于岗位匹配的简历</div>
-          <div class="ai-resume-row">
-            <span class="ai-resume-name" id="ai-resume-name">加载中...</span>
+          <div class="ai-resume-header">
+            <span>匹配基准简历</span>
+            <span class="ai-resume-status" id="ai-resume-status">已就绪</span>
           </div>
-          <div class="ai-resume-status" id="ai-resume-status">加载中...</div>
-          <div class="ai-resume-actions">
+          <div class="ai-resume-card">
+            <div class="ai-resume-info">
+              <span class="ai-resume-file-icon">📄</span>
+              <span class="ai-resume-name" id="ai-resume-name">未选择简历</span>
+            </div>
             <input type="file" id="ai-resume-file" accept=".pdf,.docx,.doc,.txt" style="display:none;">
-            <button class="ai-panel-btn ai-btn-upload" id="ai-btn-upload">上传简历</button>
+            <button class="ai-btn-upload" id="ai-btn-upload" title="上传或更换匹配简历">更换简历</button>
           </div>
         </div>
 
@@ -57,35 +65,45 @@ export function createPanel(callbacks = {}) {
           <div class="ai-scan-config">
             <div class="ai-scan-row">
               <label class="ai-scan-label">匹配阈值</label>
-              <input type="number" class="ai-scan-input" id="ai-scan-threshold" value="80" min="0" max="100">
-              <span class="ai-scan-unit">分</span>
+              <div class="ai-scan-input-group">
+                <input type="number" class="ai-scan-input" id="ai-scan-threshold" value="80" min="0" max="100">
+                <span class="ai-scan-unit">分</span>
+              </div>
             </div>
             <div class="ai-scan-row">
               <label class="ai-scan-label">扫描上限</label>
-              <input type="number" class="ai-scan-input" id="ai-scan-max-scan" value="30" min="1" max="100" placeholder="1-100">
-              <span class="ai-scan-unit">个</span>
+              <div class="ai-scan-input-group">
+                <input type="number" class="ai-scan-input" id="ai-scan-max-scan" value="30" min="1" max="100" placeholder="1-100">
+                <span class="ai-scan-unit">个</span>
+              </div>
             </div>
             <div class="ai-scan-row">
               <label class="ai-scan-label">本次沟通</label>
-              <input type="number" class="ai-scan-input" id="ai-scan-max-comm" value="5" min="0" max="30" placeholder="0-30">
-              <span class="ai-scan-unit">个</span>
+              <div class="ai-scan-input-group">
+                <input type="number" class="ai-scan-input" id="ai-scan-max-comm" value="5" min="0" max="30" placeholder="0-30">
+                <span class="ai-scan-unit">个</span>
+              </div>
             </div>
             <div class="ai-scan-row">
               <label class="ai-scan-label">单日上限</label>
-              <input type="number" class="ai-scan-input" id="ai-scan-daily-limit" value="25" min="1" max="50" placeholder="1-50" title="单日自动沟通硬上限，达到自动熔断">
-              <span class="ai-scan-unit">次</span>
+              <div class="ai-scan-input-group">
+                <input type="number" class="ai-scan-input" id="ai-scan-daily-limit" value="25" min="1" max="50" placeholder="1-50" title="单日自动沟通硬上限，达到自动熔断">
+                <span class="ai-scan-unit">次</span>
+              </div>
             </div>
             <div class="ai-scan-row">
               <label class="ai-scan-label">时延抖动</label>
-              <input type="number" class="ai-scan-input ai-delay-input" id="ai-scan-min-delay" value="12" min="5" max="120" title="最小拟人延时(秒)">
-              <span class="ai-scan-unit">-</span>
-              <input type="number" class="ai-scan-input ai-delay-input" id="ai-scan-max-delay" value="30" min="10" max="300" title="最大拟人延时(秒)">
-              <span class="ai-scan-unit">秒</span>
+              <div class="ai-scan-input-group">
+                <input type="number" class="ai-scan-input ai-delay-input" id="ai-scan-min-delay" value="12" min="5" max="120" title="最小拟人延时(秒)">
+                <span class="ai-scan-unit">-</span>
+                <input type="number" class="ai-scan-input ai-delay-input" id="ai-scan-max-delay" value="30" min="10" max="300" title="最大拟人延时(秒)">
+                <span class="ai-scan-unit">秒</span>
+              </div>
             </div>
             <div class="ai-scan-row ai-scan-switch-row">
               <label class="ai-scan-switch">
                 <input type="checkbox" id="ai-scan-auto-comm">
-                自动沟通
+                自动初次沟通
               </label>
             </div>
             <div class="ai-scan-row">
@@ -127,14 +145,17 @@ export function createPanel(callbacks = {}) {
           </div>
         </div>
 
-        <p class="ai-panel-hint">点击下方按钮，将此岗位发送到AI求职助手进行匹配分析</p>
-        <button class="ai-panel-btn ai-btn-primary" id="ai-btn-capture">
-          发送到AI求职助手
-        </button>
+        <div class="ai-capture-box">
+          <p class="ai-panel-hint">将当前打开的岗位发送至后台分析匹配度</p>
+          <button class="ai-panel-btn ai-btn-primary" id="ai-btn-capture">
+            <span class="ai-btn-icon">⚡</span> 发送当前岗位到 AI 助手
+          </button>
+        </div>
         <div id="ai-panel-result" style="display:none;"></div>
       </div>
       <div class="ai-panel-footer">
-        <span class="ai-panel-version">v2.0 (模块化)</span>
+        <span class="ai-panel-version">AI求职助手 · 智能伴侣</span>
+        <a href="http://127.0.0.1:8000" target="_blank">打开控制台 ↗</a>
       </div>
     </div>
   `;
