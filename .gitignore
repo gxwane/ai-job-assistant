@@ -17,6 +17,9 @@ htmlcov/
 # Node
 node_modules/
 dist/
+test-results/
+playwright-report/
+blob-report/
 
 # IDE
 .vscode/

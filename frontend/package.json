@@ -8,7 +8,8 @@
     "build": "vite build",
     "build:extension": "vite build --config vite.extension.config.js",
     "preview": "vite preview",
-    "test": "vitest run --environment happy-dom"
+    "test": "vitest run --environment happy-dom",
+    "test:ui": "playwright test --config=playwright.config.js"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
@@ -21,6 +22,7 @@
   },
   "devDependencies": {
     "@pinia/testing": "^0.1.7",
+    "@playwright/test": "^1.63.0",
     "@vitejs/plugin-vue": "^5.2.0",
     "@vue/test-utils": "^2.5.1",
     "happy-dom": "^20.14.5",
@@ -28,4 +30,3 @@
     "vitest": "^2.1.9"
   }
 }
-
