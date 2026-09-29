@@ -103,10 +103,10 @@ npm run build:extension
   bash scripts/verify_gauntlet.sh
   ```
 
-### 门禁核验项目（共 141 项自动化测试）：
+### 门禁核验项目（共 144 项自动化测试）：
 1. **Ruff 静态检查**：`uv run ruff check`（无语法告警与无用导入）；
 2. **后端单元测试**：`uv run pytest tests`（**100** 个单元测试全绿通过）；
-3. **前端单元测试**：`npm test`（**41** 个 Vitest 测试全绿通过）；
+3. **前端单元测试**：`npm test`（**44** 个 Vitest 测试全绿通过）；
 4. **前端生产打包**：`npm run build`（Vite 生产包正常产出，自动分包无超限告警）；
 5. **插件模块打包与防漂移**：`npm run build:extension`（严禁直接手动修改 `extension/content.js`，须在 `extension/src/` 中修改源码后重新编译打包，CI 将通过 `git diff` 拦截未编译提交）。
 

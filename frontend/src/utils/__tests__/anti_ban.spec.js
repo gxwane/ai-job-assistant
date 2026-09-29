@@ -77,4 +77,82 @@ describe('Anti-Ban & Risk Circuit Breaker Algorithms', () => {
       expect(detectRiskText('岗位职责：负责公司中后台系统的核心模块研发')).toBe(false)
     })
   })
+
+  // ── 4. User-Configurable Anti-Ban Bounds & Preset Guardrails ──────────────────
+  describe('User-Configurable Anti-Ban Bounds & Presets', () => {
+    it('clamps aggressive configurations to hard safety bounds', async () => {
+      const { clampScanConfig } = await import('../../../../extension/src/store/state.js')
+      const { SAFETY_BOUNDS } = await import('../../../../extension/src/config.js')
+
+      const aggressive = {
+        minDelay: 0,
+        maxDelay: 2,
+        dailyLimit: 999,
+        maxScanCount: 1000,
+        maxAutoCommunicateCount: 500,
+        threshold: 120,
+      }
+
+      const clamped = clampScanConfig(aggressive)
+
+      expect(clamped.minDelay).toBeGreaterThanOrEqual(SAFETY_BOUNDS.minDelayFloor)
+      expect(clamped.maxDelay).toBeGreaterThanOrEqual(SAFETY_BOUNDS.maxDelayFloor)
+      expect(clamped.maxDelay).toBeGreaterThanOrEqual(clamped.minDelay)
+      expect(clamped.dailyLimit).toBeLessThanOrEqual(SAFETY_BOUNDS.dailyLimitCeiling)
+      expect(clamped.maxScanCount).toBeLessThanOrEqual(SAFETY_BOUNDS.maxScanCeiling)
+      expect(clamped.maxAutoCommunicateCount).toBeLessThanOrEqual(SAFETY_BOUNDS.maxCommCeiling)
+      expect(clamped.threshold).toBe(100)
+    })
+
+    it('preserves valid custom configurations within safety bounds', async () => {
+      const { clampScanConfig } = await import('../../../../extension/src/store/state.js')
+
+      const validConfig = {
+        presetMode: 'custom',
+        minDelay: 15,
+        maxDelay: 35,
+        dailyLimit: 20,
+        maxScanCount: 25,
+        maxAutoCommunicateCount: 4,
+        threshold: 82,
+        autoCommunicate: true,
+        hrRequirement: '3days',
+      }
+
+      const clamped = clampScanConfig(validConfig)
+
+      expect(clamped.presetMode).toBe('custom')
+      expect(clamped.minDelay).toBe(15)
+      expect(clamped.maxDelay).toBe(35)
+      expect(clamped.dailyLimit).toBe(20)
+      expect(clamped.maxScanCount).toBe(25)
+      expect(clamped.maxAutoCommunicateCount).toBe(4)
+      expect(clamped.threshold).toBe(82)
+      expect(clamped.autoCommunicate).toBe(true)
+      expect(clamped.hrRequirement).toBe('3days')
+      expect(clamped.hrStatusAllowed).toContain('3日内活跃')
+    })
+
+    it('verifies that all presets satisfy safety bounds', async () => {
+      const { PRESET_PROFILES, SAFETY_BOUNDS } = await import('../../../../extension/src/config.js')
+
+      for (const [key, profile] of Object.entries(PRESET_PROFILES)) {
+        if (key === 'custom') continue
+        expect(profile.minDelay).toBeGreaterThanOrEqual(SAFETY_BOUNDS.minDelayFloor)
+        expect(profile.maxDelay).toBeGreaterThanOrEqual(SAFETY_BOUNDS.maxDelayFloor)
+        expect(profile.maxDelay).toBeGreaterThan(profile.minDelay)
+        expect(profile.dailyLimit).toBeLessThanOrEqual(SAFETY_BOUNDS.dailyLimitCeiling)
+        expect(profile.maxScanCount).toBeLessThanOrEqual(SAFETY_BOUNDS.maxScanCeiling)
+        expect(profile.maxAutoCommunicateCount).toBeLessThanOrEqual(SAFETY_BOUNDS.maxCommCeiling)
+      }
+
+      // Fast profile must disable auto-communication for speed screening
+      expect(PRESET_PROFILES.fast.maxAutoCommunicateCount).toBe(0)
+      expect(PRESET_PROFILES.fast.dailyLimit).toBe(0)
+
+      // Safe profile must have conservative delay and dailyLimit
+      expect(PRESET_PROFILES.safe.minDelay).toBeGreaterThanOrEqual(20)
+      expect(PRESET_PROFILES.safe.dailyLimit).toBeLessThanOrEqual(15)
+    })
+  })
 })

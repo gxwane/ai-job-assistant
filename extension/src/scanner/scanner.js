@@ -1,10 +1,11 @@
 /**
  * AI求职助手 - 自动扫描状态机与控制循环
  */
-import { scanState, loadState, runtimeState } from '../store/state.js';
-import { HR_REQUIREMENT_LABEL } from '../config.js';
+import { scanState, loadState, runtimeState, clampScanConfig, saveScanConfigToStorage } from '../store/state.js';
+import { HR_REQUIREMENT_LABEL, HR_REQUIREMENT_MAP } from '../config.js';
 import { extractJobInfo } from '../extractor/job_info.js';
 import { postJobCapture, markCommunicatedOnBackend } from '../api/client.js';
+
 import {
   calculateGaussianJitter,
   detectRiskCircuitBreaker,
@@ -148,6 +149,34 @@ export async function sendJobForScan(jobInfo, cardIndex) {
 
 export async function autoScanStart() {
   addLog('=== 开始自动筛选 ===');
+
+  // 1. 扫描前从 DOM 控件强制同步用户最新配置（并进行安全 Clamp 校验）
+  if (typeof window !== 'undefined' && document.getElementById('ai-scan-threshold')) {
+    const thresholdEl = document.getElementById('ai-scan-threshold');
+    const maxScanEl = document.getElementById('ai-scan-max-scan');
+    const maxCommEl = document.getElementById('ai-scan-max-comm');
+    const autoCommEl = document.getElementById('ai-scan-auto-comm');
+    const hrReqEl = document.getElementById('ai-scan-hr-req');
+    const minDelayEl = document.getElementById('ai-scan-min-delay');
+    const maxDelayEl = document.getElementById('ai-scan-max-delay');
+    const dailyLimitEl = document.getElementById('ai-scan-daily-limit');
+
+    const rawConfig = {
+      presetMode: scanState.presetMode,
+      threshold: thresholdEl ? Number(thresholdEl.value) : scanState.threshold,
+      maxScanCount: maxScanEl ? Number(maxScanEl.value) : scanState.maxScanCount,
+      maxAutoCommunicateCount: maxCommEl ? Number(maxCommEl.value) : scanState.maxAutoCommunicateCount,
+      autoCommunicate: autoCommEl ? autoCommEl.checked : scanState.autoCommunicate,
+      hrRequirement: hrReqEl ? hrReqEl.value : scanState.hrRequirement,
+      minDelay: minDelayEl ? Number(minDelayEl.value) : scanState.minDelay,
+      maxDelay: maxDelayEl ? Number(maxDelayEl.value) : scanState.maxDelay,
+      dailyLimit: dailyLimitEl ? Number(dailyLimitEl.value) : scanState.dailyLimit,
+    };
+    const clamped = clampScanConfig(rawConfig);
+    Object.assign(scanState, clamped);
+    await saveScanConfigToStorage();
+  }
+
   const cards = document.querySelectorAll('.job-card-wrapper, .job-card-box, [class*="job-card"]');
   scanState.totalCards = cards.length;
   scanState.status = 'running';
@@ -161,6 +190,15 @@ export async function autoScanStart() {
   try {
     for (let i = scanState.currentIndex; i < cards.length; i++) {
       checkControlSignal(`card ${i}`);
+
+      // 持续风控熔断检测（防止列表页突发滑块验证）
+      const continuousRisk = detectRiskCircuitBreaker();
+      if (continuousRisk.detected) {
+        addLog(`🚨 [风控熔断] 页面出现安全验证（${continuousRisk.reason}），已紧急停止自动扫描保护账号！`);
+        scanState.stopRequested = true;
+        break;
+      }
+
       if (scanState.analyzedCount >= scanState.maxScanCount) {
         addLog(`已达单次最大扫描数 (${scanState.maxScanCount})，停止扫描`);
         break;
@@ -168,18 +206,20 @@ export async function autoScanStart() {
 
       const card = cards[i];
       card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      await interruptibleSleep(600, 'scroll');
+      // 随机拟人微延时 (500~900ms)
+      await interruptibleSleep(Math.floor(500 + Math.random() * 400), 'scroll');
 
       try {
         card.click();
       } catch (e) {}
-      await interruptibleSleep(1200, 'after card click');
+      // 随机卡片加载等待 (900~1500ms)
+      await interruptibleSleep(Math.floor(900 + Math.random() * 600), 'after card click');
 
       const jobInfo = await extractJobInfo();
       await analyzeAndHandleJob(jobInfo, i, card);
 
       const delay = calculateGaussianJitter(scanState.minDelay, scanState.maxDelay);
-      addScanLog(`高斯拟人等待 ${delay} 秒...`);
+      addScanLog(`高斯拟人等待 ${delay} 秒 (${scanState.minDelay}-${scanState.maxDelay}s)...`);
       await interruptibleSleep(delay * 1000, 'between jobs');
     }
     addLog('=== 自动筛选结束 ===');
@@ -235,10 +275,22 @@ async function analyzeAndHandleJob(jobInfo, i, card) {
 
   if (result.match_score >= scanState.threshold) {
     scanState.recommendedCount++;
-    addLog(`匹配度 ${result.match_score} → 建议沟通`);
+    addLog(`匹配度 ${result.match_score} → 达到推荐阈值(${scanState.threshold})`);
     let communicated = false;
-    if (scanState.autoCommunicate && scanState.communicatedCount < scanState.maxAutoCommunicateCount) {
-      communicated = await executeAutoCommunicate(result);
+
+    // 自动沟通守则与 HR 活跃度真过滤
+    if (scanState.autoCommunicate) {
+      if (scanState.communicatedCount >= scanState.maxAutoCommunicateCount) {
+        addLog(`已达单次最大沟通数 (${scanState.maxAutoCommunicateCount})，本次跳过自动打招呼`);
+      } else {
+        const hrStatus = result.hr_status || '未知';
+        const isHrAllowed = !scanState.hrStatusAllowed || scanState.hrStatusAllowed.includes(hrStatus);
+        if (!isHrAllowed) {
+          addLog(`HR活跃度 [${hrStatus}] 不满足要求 [${HR_REQUIREMENT_LABEL[scanState.hrRequirement] || scanState.hrRequirement}]，跳过自动沟通`);
+        } else {
+          communicated = await executeAutoCommunicate(result);
+        }
+      }
     }
     addToRecommendedList(
       {
@@ -264,9 +316,9 @@ async function executeAutoCommunicate(result) {
   }
 
   const dailyCount = await getDailyCommunicatedCount();
-  const DAILY_LIMIT = 20;
-  if (dailyCount >= DAILY_LIMIT) {
-    addLog(`⚠️ [风控拦截] 今日自动沟通已达硬上限（${dailyCount}/${DAILY_LIMIT}次），已强制停止沟通保护账号！`);
+  const effectiveDailyLimit = scanState.dailyLimit || 20;
+  if (dailyCount >= effectiveDailyLimit) {
+    addLog(`⚠️ [风控拦截] 今日自动沟通已达上限（${dailyCount}/${effectiveDailyLimit}次），已强制停止沟通保护账号！`);
     scanState.stopRequested = true;
     return false;
   }
@@ -298,10 +350,11 @@ async function executeAutoCommunicate(result) {
     scanState.communicatedCount++;
     await incrementDailyCommunicatedCount();
     const todayCount = await getDailyCommunicatedCount();
-    addLog(`沟通成功（今日累计沟通 ${todayCount}/${DAILY_LIMIT} 次）`);
+    addLog(`沟通成功（今日累计沟通 ${todayCount}/${effectiveDailyLimit} 次）`);
     updateScanStatus();
     return true;
   } catch (e) {
     return false;
   }
 }
+

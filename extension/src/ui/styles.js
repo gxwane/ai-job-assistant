@@ -113,12 +113,22 @@ export function getPanelCSS() {
     /* 自动筛选区域 */
     .ai-scan-section { margin-top: 16px; }
     .ai-scan-divider { border-top: 1px solid #ebeef5; margin-bottom: 12px; }
-    .ai-scan-title { font-size: 14px; font-weight: 600; color: #333; margin-bottom: 10px; }
-    .ai-scan-config { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-bottom: 10px; }
+    .ai-scan-title { font-size: 14px; font-weight: 600; color: #333; margin-bottom: 8px; }
+    .ai-preset-tabs { display: flex; gap: 4px; margin-bottom: 6px; }
+    .ai-preset-tab {
+      flex: 1; padding: 4px 0; border: 1px solid #dcdfe6; border-radius: 4px;
+      background: #f5f7fa; color: #606266; font-size: 11px; font-weight: 500;
+      cursor: pointer; text-align: center; transition: all 0.2s;
+    }
+    .ai-preset-tab:hover { border-color: #409EFF; color: #409EFF; }
+    .ai-preset-tab.active { background: #409EFF; border-color: #409EFF; color: #fff; font-weight: 600; }
+    .ai-preset-desc { font-size: 11px; color: #909399; margin-bottom: 8px; line-height: 1.4; min-height: 16px; }
+    .ai-scan-config { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-bottom: 10px; }
     .ai-scan-row { display: flex; align-items: center; gap: 4px; }
     .ai-scan-label { font-size: 12px; color: #666; white-space: nowrap; }
-    .ai-scan-input { width: 48px; height: 22px; padding: 0 4px; border: 1px solid #dcdfe6; border-radius: 4px; font-size: 12px; text-align: center; }
-    .ai-scan-select { width: 100px; height: 24px; padding: 0 4px; border: 1px solid #dcdfe6; border-radius: 4px; font-size: 12px; background: #fff; }
+    .ai-scan-input { width: 44px; height: 22px; padding: 0 4px; border: 1px solid #dcdfe6; border-radius: 4px; font-size: 12px; text-align: center; }
+    .ai-delay-input { width: 36px !important; }
+    .ai-scan-select { width: 95px; height: 24px; padding: 0 4px; border: 1px solid #dcdfe6; border-radius: 4px; font-size: 12px; background: #fff; }
     .ai-scan-unit { font-size: 11px; color: #999; }
     .ai-scan-delay { font-size: 12px; color: #666; }
     .ai-scan-switch-row { margin-top: 2px; }

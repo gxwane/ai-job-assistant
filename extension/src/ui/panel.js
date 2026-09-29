@@ -1,8 +1,15 @@
 /**
  * AI求职助手 - 面板创建、拖拽与折叠
  */
-import { PANEL_ID } from '../config.js';
-import { panelState, runtimeState } from '../store/state.js';
+import { PANEL_ID, PRESET_PROFILES } from '../config.js';
+import {
+  panelState,
+  runtimeState,
+  scanState,
+  clampScanConfig,
+  saveScanConfigToStorage,
+  loadScanConfigFromStorage,
+} from '../store/state.js';
 import { getPanelCSS } from './styles.js';
 import { uploadResumeFile } from '../api/client.js';
 
@@ -51,25 +58,42 @@ export function createPanel(callbacks = {}) {
           <div class="ai-scan-divider"></div>
           <div class="ai-scan-title">本页自动筛选岗位</div>
 
+          <!-- 预设选择器 -->
+          <div class="ai-preset-tabs" id="ai-scan-presets">
+            <button type="button" class="ai-preset-tab" data-preset="safe">🛡️稳健</button>
+            <button type="button" class="ai-preset-tab active" data-preset="standard">⚖️标准</button>
+            <button type="button" class="ai-preset-tab" data-preset="fast">⚡初筛</button>
+            <button type="button" class="ai-preset-tab" data-preset="custom">⚙️自定义</button>
+          </div>
+          <div class="ai-preset-desc" id="ai-preset-desc">日常求职推荐，拟人化时延与适度沟通</div>
+
           <div class="ai-scan-config">
             <div class="ai-scan-row">
               <label class="ai-scan-label">匹配阈值</label>
-              <input type="number" class="ai-scan-input" id="ai-scan-threshold" value="85" min="0" max="100">
+              <input type="number" class="ai-scan-input" id="ai-scan-threshold" value="80" min="0" max="100">
               <span class="ai-scan-unit">分</span>
             </div>
             <div class="ai-scan-row">
               <label class="ai-scan-label">扫描上限</label>
-              <input type="number" class="ai-scan-input" id="ai-scan-max-scan" value="20" min="1" max="500" placeholder="1-500">
+              <input type="number" class="ai-scan-input" id="ai-scan-max-scan" value="30" min="1" max="100" placeholder="1-100">
               <span class="ai-scan-unit">个</span>
             </div>
             <div class="ai-scan-row">
-              <label class="ai-scan-label">沟通上限</label>
-              <input type="number" class="ai-scan-input" id="ai-scan-max-comm" value="3" min="0" max="150" placeholder="0-150">
+              <label class="ai-scan-label">本次沟通</label>
+              <input type="number" class="ai-scan-input" id="ai-scan-max-comm" value="5" min="0" max="30" placeholder="0-30">
               <span class="ai-scan-unit">个</span>
             </div>
             <div class="ai-scan-row">
-              <label class="ai-scan-label">间隔</label>
-              <span class="ai-scan-delay">15-45秒(高斯抖动)</span>
+              <label class="ai-scan-label">单日上限</label>
+              <input type="number" class="ai-scan-input" id="ai-scan-daily-limit" value="25" min="1" max="50" placeholder="1-50" title="单日自动沟通硬上限，达到自动熔断">
+              <span class="ai-scan-unit">次</span>
+            </div>
+            <div class="ai-scan-row">
+              <label class="ai-scan-label">时延抖动</label>
+              <input type="number" class="ai-scan-input ai-delay-input" id="ai-scan-min-delay" value="12" min="5" max="120" title="最小拟人延时(秒)">
+              <span class="ai-scan-unit">-</span>
+              <input type="number" class="ai-scan-input ai-delay-input" id="ai-scan-max-delay" value="30" min="10" max="300" title="最大拟人延时(秒)">
+              <span class="ai-scan-unit">秒</span>
             </div>
             <div class="ai-scan-row ai-scan-switch-row">
               <label class="ai-scan-switch">
@@ -81,8 +105,8 @@ export function createPanel(callbacks = {}) {
               <label class="ai-scan-label">HR要求</label>
               <select class="ai-scan-select" id="ai-scan-hr-req">
                 <option value="online">仅在线</option>
-                <option value="3days" selected>3日内活跃</option>
-                <option value="week">本周内活跃</option>
+                <option value="3days">3日内活跃</option>
+                <option value="week" selected>本周内活跃</option>
                 <option value="month">本月内活跃</option>
                 <option value="unlimited">不限制</option>
               </select>
@@ -172,6 +196,54 @@ export function createPanel(callbacks = {}) {
     event.target.value = '';
   });
 
+  // 扫描配置回显与持久化监听
+  loadScanConfigFromStorage().then((cfg) => {
+    populateConfigInputs(cfg);
+  });
+
+  // 预设切换事件
+  const presetContainer = document.getElementById('ai-scan-presets');
+  presetContainer?.addEventListener('click', (e) => {
+    const target = e.target.closest('.ai-preset-tab');
+    if (!target) return;
+    const presetKey = target.dataset.preset;
+    if (!presetKey) return;
+    if (presetKey in PRESET_PROFILES && presetKey !== 'custom') {
+      const profile = PRESET_PROFILES[presetKey];
+      const clamped = clampScanConfig({
+        ...profile,
+        presetMode: presetKey,
+      });
+      Object.assign(scanState, clamped);
+      populateConfigInputs(scanState);
+      saveScanConfigToStorage();
+    } else if (presetKey === 'custom') {
+      scanState.presetMode = 'custom';
+      renderPresetUI('custom');
+      saveScanConfigToStorage();
+    }
+  });
+
+  // 配置修改监听（失焦或变更自动触发安全Clamp与持久化）
+  const configInputIds = [
+    'ai-scan-threshold',
+    'ai-scan-max-scan',
+    'ai-scan-max-comm',
+    'ai-scan-daily-limit',
+    'ai-scan-min-delay',
+    'ai-scan-max-delay',
+    'ai-scan-auto-comm',
+    'ai-scan-hr-req',
+  ];
+
+  configInputIds.forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('change', () => {
+      syncStateFromInputs('custom');
+    });
+  });
+
   // 外部注入的回调绑定
   if (callbacks.onCapture) document.getElementById('ai-btn-capture')?.addEventListener('click', callbacks.onCapture);
   if (callbacks.onStartScan) document.getElementById('ai-start-auto-scan')?.addEventListener('click', callbacks.onStartScan);
@@ -181,6 +253,71 @@ export function createPanel(callbacks = {}) {
   if (callbacks.onLoadMore) document.getElementById('ai-btn-load-more')?.addEventListener('click', callbacks.onLoadMore);
   if (callbacks.onStopLoad) document.getElementById('ai-btn-load-stop')?.addEventListener('click', callbacks.onStopLoad);
   if (callbacks.onResetProgress) document.getElementById('ai-btn-scan-reset')?.addEventListener('click', callbacks.onResetProgress);
+}
+
+export function renderPresetUI(presetMode) {
+  const tabs = document.querySelectorAll('#ai-scan-presets .ai-preset-tab');
+  tabs.forEach(tab => {
+    if (tab.dataset.preset === presetMode) {
+      tab.classList.add('active');
+    } else {
+      tab.classList.remove('active');
+    }
+  });
+  const descEl = document.getElementById('ai-preset-desc');
+  if (descEl) {
+    const profile = PRESET_PROFILES[presetMode] || PRESET_PROFILES.custom;
+    descEl.textContent = profile ? profile.description : '';
+  }
+}
+
+export function populateConfigInputs(state) {
+  const thresholdEl = document.getElementById('ai-scan-threshold');
+  const maxScanEl = document.getElementById('ai-scan-max-scan');
+  const maxCommEl = document.getElementById('ai-scan-max-comm');
+  const dailyLimitEl = document.getElementById('ai-scan-daily-limit');
+  const minDelayEl = document.getElementById('ai-scan-min-delay');
+  const maxDelayEl = document.getElementById('ai-scan-max-delay');
+  const autoCommEl = document.getElementById('ai-scan-auto-comm');
+  const hrReqEl = document.getElementById('ai-scan-hr-req');
+
+  if (thresholdEl) thresholdEl.value = state.threshold;
+  if (maxScanEl) maxScanEl.value = state.maxScanCount;
+  if (maxCommEl) maxCommEl.value = state.maxAutoCommunicateCount;
+  if (dailyLimitEl) dailyLimitEl.value = state.dailyLimit;
+  if (minDelayEl) minDelayEl.value = state.minDelay;
+  if (maxDelayEl) maxDelayEl.value = state.maxDelay;
+  if (autoCommEl) autoCommEl.checked = Boolean(state.autoCommunicate);
+  if (hrReqEl) hrReqEl.value = state.hrRequirement;
+
+  renderPresetUI(state.presetMode || 'standard');
+}
+
+export function syncStateFromInputs(presetMode = 'custom') {
+  const thresholdEl = document.getElementById('ai-scan-threshold');
+  const maxScanEl = document.getElementById('ai-scan-max-scan');
+  const maxCommEl = document.getElementById('ai-scan-max-comm');
+  const dailyLimitEl = document.getElementById('ai-scan-daily-limit');
+  const minDelayEl = document.getElementById('ai-scan-min-delay');
+  const maxDelayEl = document.getElementById('ai-scan-max-delay');
+  const autoCommEl = document.getElementById('ai-scan-auto-comm');
+  const hrReqEl = document.getElementById('ai-scan-hr-req');
+
+  const clamped = clampScanConfig({
+    presetMode,
+    threshold: thresholdEl ? Number(thresholdEl.value) : scanState.threshold,
+    maxScanCount: maxScanEl ? Number(maxScanEl.value) : scanState.maxScanCount,
+    maxAutoCommunicateCount: maxCommEl ? Number(maxCommEl.value) : scanState.maxAutoCommunicateCount,
+    dailyLimit: dailyLimitEl ? Number(dailyLimitEl.value) : scanState.dailyLimit,
+    minDelay: minDelayEl ? Number(minDelayEl.value) : scanState.minDelay,
+    maxDelay: maxDelayEl ? Number(maxDelayEl.value) : scanState.maxDelay,
+    autoCommunicate: autoCommEl ? autoCommEl.checked : scanState.autoCommunicate,
+    hrRequirement: hrReqEl ? hrReqEl.value : scanState.hrRequirement,
+  });
+
+  Object.assign(scanState, clamped);
+  populateConfigInputs(scanState);
+  saveScanConfigToStorage();
 }
 
 export function updateResumeDisplay() {
