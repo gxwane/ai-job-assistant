@@ -59,7 +59,7 @@ def startup_event():
     else:
         print(f"[OK] 已接入大模型 ({llm_client.model})，将使用真实 AI 分析")
 
-    # 阶段二：单端口融合 —— 若前端已构建，将 dist 目录挂载到根路径
+    # 全栈单端口融合 —— 若前端已构建，将 dist 目录挂载到根路径
     # 这使得用户只需启动后端（python/uv），即可通过 http://127.0.0.1:8000 访问完整 Web 界面。
     # html=True：未匹配的路径回落到 index.html，保证 Vue Router history 模式正常工作。
     # 挂载必须在所有 API 路由注册完成后执行（路由按注册顺序匹配，API 优先）。

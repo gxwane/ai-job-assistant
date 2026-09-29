@@ -1,5 +1,5 @@
 # ==============================================================================
-# AI Job Assistant - 全栈单容器 Dockerfile（阶段二：单端口融合）
+# AI Job Assistant - 全栈单容器 Dockerfile（全栈单端口融合）
 #
 # 构建策略：多阶段构建
 #   Stage 1 (frontend-builder): Node.js 环境中构建 Vue 3 前端产物

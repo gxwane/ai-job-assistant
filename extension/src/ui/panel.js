@@ -40,19 +40,6 @@ export function createPanel(callbacks = {}) {
           </div>
         </div>
 
-        <!-- 岗位加载区域 -->
-        <div class="ai-load-section">
-          <div class="ai-scan-title">岗位加载</div>
-          <div class="ai-load-status">
-            当前检测岗位数：<b id="ai-load-count">-</b> &nbsp;
-            状态：<b id="ai-load-status-text">未开始</b>
-          </div>
-          <div class="ai-load-btns">
-            <button class="ai-scan-btn ai-scan-btn-start" id="ai-btn-load-more">加载更多岗位</button>
-            <button class="ai-scan-btn ai-scan-btn-stop" id="ai-btn-load-stop" disabled>停止加载</button>
-          </div>
-        </div>
-
         <!-- 自动筛选区域 -->
         <div class="ai-scan-section">
           <div class="ai-scan-divider"></div>
@@ -115,7 +102,6 @@ export function createPanel(callbacks = {}) {
 
           <div class="ai-scan-btns">
             <button class="ai-scan-btn ai-scan-btn-start" id="ai-start-auto-scan">开始自动筛选</button>
-            <button class="ai-scan-btn ai-scan-btn-diag" id="ai-btn-scan-diag">诊断卡片</button>
             <button class="ai-scan-btn ai-scan-btn-pause" id="ai-btn-scan-pause" disabled>暂停</button>
             <button class="ai-scan-btn ai-scan-btn-continue" id="ai-btn-scan-continue" disabled>继续</button>
             <button class="ai-scan-btn ai-scan-btn-stop" id="ai-btn-scan-stop" disabled>停止</button>
@@ -244,14 +230,23 @@ export function createPanel(callbacks = {}) {
     });
   });
 
+  // 监听外部存储变更（如在 Popup 弹窗修改并保存）实现全链路实时双向同步
+  if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName === 'local' && changes.scanConfig && changes.scanConfig.newValue) {
+        const clamped = clampScanConfig(changes.scanConfig.newValue);
+        Object.assign(scanState, clamped);
+        populateConfigInputs(scanState);
+      }
+    });
+  }
+
   // 外部注入的回调绑定
   if (callbacks.onCapture) document.getElementById('ai-btn-capture')?.addEventListener('click', callbacks.onCapture);
   if (callbacks.onStartScan) document.getElementById('ai-start-auto-scan')?.addEventListener('click', callbacks.onStartScan);
   if (callbacks.onPauseScan) document.getElementById('ai-btn-scan-pause')?.addEventListener('click', callbacks.onPauseScan);
   if (callbacks.onContinueScan) document.getElementById('ai-btn-scan-continue')?.addEventListener('click', callbacks.onContinueScan);
   if (callbacks.onStopScan) document.getElementById('ai-btn-scan-stop')?.addEventListener('click', callbacks.onStopScan);
-  if (callbacks.onLoadMore) document.getElementById('ai-btn-load-more')?.addEventListener('click', callbacks.onLoadMore);
-  if (callbacks.onStopLoad) document.getElementById('ai-btn-load-stop')?.addEventListener('click', callbacks.onStopLoad);
   if (callbacks.onResetProgress) document.getElementById('ai-btn-scan-reset')?.addEventListener('click', callbacks.onResetProgress);
 }
 

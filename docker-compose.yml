@@ -3,7 +3,7 @@ version: "3.8"
 # ─────────────────────────────────────────────────────────────────────────────
 #  AI求职助手 · Docker Compose 一键启动
 #
-#  架构说明（阶段二：单端口融合）：
+#  架构说明（全栈单端口融合）：
 #    前端 Vue 3 静态产物由 FastAPI 后端直接托管，无需独立的 Nginx 容器。
 #    所有访问统一走 http://localhost:8000，降低用户配置复杂度。
 #
@@ -25,7 +25,7 @@ services:
       # 不填写 API Key 时自动以 Mock 离线模式运行，可在页面右上角「模型设置」热配置
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
       - DEEPSEEK_BASE_URL=${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
-      - DEEPSEEK_MODEL=${DEEPSEEK_MODEL:-deepseek-v4-flash}
+      - DEEPSEEK_MODEL=${DEEPSEEK_MODEL:-deepseek-chat}
       - DATABASE_URL=sqlite:////app/data/ai_job_assistant.db
     volumes:
       - ai_job_assistant_uploads:/app/uploads

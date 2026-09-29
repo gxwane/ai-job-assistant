@@ -175,6 +175,17 @@ export async function autoScanStart() {
     const clamped = clampScanConfig(rawConfig);
     Object.assign(scanState, clamped);
     await saveScanConfigToStorage();
+
+    const resumeCheckEl = document.getElementById('ai-scan-resume-check');
+    if (resumeCheckEl && !resumeCheckEl.checked) {
+      scanState.currentIndex = 0;
+      scanState.analyzedCount = 0;
+      scanState.recommendedCount = 0;
+      scanState.communicatedCount = 0;
+      scanState.failedCount = 0;
+      scanState.results = [];
+      addLog('已取消“继续上次进度”，从头开始扫描');
+    }
   }
 
   const cards = document.querySelectorAll('.job-card-wrapper, .job-card-box, [class*="job-card"]');

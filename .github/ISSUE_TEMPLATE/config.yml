@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: 💬 社区问答与讨论 (GitHub Discussions)
-    url: https://github.com/SouthMountain88/ai-job-assistant/discussions
+    url: https://github.com/gxwane/ai-job-assistant/discussions
     about: 寻求使用帮助、交流求职心得或探讨开发思路，请移步 Discussions。
   - name: 📖 项目快速上手文档 (Documentation)
-    url: https://github.com/SouthMountain88/ai-job-assistant/blob/main/README.md
+    url: https://github.com/gxwane/ai-job-assistant/blob/main/README.md
     about: 查看环境配置、一键启动脚本与常见问题排查指引。

@@ -1,6 +1,6 @@
 [project]
 name = "ai-job-assistant-backend"
-version = "0.1.0"
+version = "1.0.0"
 description = "AI-powered job application assistant — FastAPI backend"
 license = { text = "MIT" }
 authors = [{ name = "GX Wane", email = "gxwane@outlook.com" }]
