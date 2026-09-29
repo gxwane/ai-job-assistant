@@ -4,7 +4,7 @@ Pydantic 数据验证模型（请求/响应结构）
 from datetime import datetime
 from typing import Any, Generic, TypeVar
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 T = TypeVar('T')
 
@@ -23,8 +23,7 @@ class ResumeResponse(BaseModel):
     filename: str
     content: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ==================== 分析相关 ====================
@@ -93,8 +92,7 @@ class AnalysisResponse(BaseModel):
     result_json: AnalysisResult
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ==================== 历史记录相关 ====================
@@ -107,8 +105,7 @@ class HistoryListItem(BaseModel):
     match_score: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class BatchDeleteRequest(BaseModel):
@@ -142,8 +139,7 @@ class HistoryDetailResponse(BaseModel):
     resume_filename: str | None = None
     resume_content: str | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ==================== 插件相关 ====================
@@ -218,8 +214,7 @@ class JobRecordResponse(BaseModel):
     # 异步分析状态
     analysis_status: str | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class JobRecordDetailResponse(JobRecordResponse):
@@ -292,8 +287,7 @@ class SystemSettingResponse(BaseModel):
     source: str = Field("database", description="配置来源: database / env / default")
     updated_at: datetime | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SystemSettingUpdateRequest(BaseModel):

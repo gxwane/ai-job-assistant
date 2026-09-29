@@ -17,7 +17,8 @@ class StartupEncodingTests(unittest.TestCase):
             cwd=BACKEND_DIR,
             env=env,
             capture_output=True,
-            text=True,
+            encoding="gbk",
+            errors="replace",
         )
 
         self.assertEqual(
